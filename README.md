@@ -67,6 +67,17 @@ uvicorn app.main:app --reload
 
 Tables are created automatically on startup.
 
+### Backend API tests
+
+The backend tests use an isolated in-memory SQLite database and do not require
+Docker or modify the local PostgreSQL database.
+
+```bash
+cd backend
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
 ### 3. Frontend
 
 ```bash
