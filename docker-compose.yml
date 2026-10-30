@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: recipe-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: recipes
+      POSTGRES_PASSWORD: recipes
+      POSTGRES_DB: recipes
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
