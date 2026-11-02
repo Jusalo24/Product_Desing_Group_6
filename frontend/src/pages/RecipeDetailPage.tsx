@@ -19,7 +19,7 @@ export default function RecipeDetailPage() {
   async function handleDelete() {
     if (!recipe || !window.confirm("Delete this recipe?")) return;
     await api.deleteRecipe(recipe.id);
-    navigate("/");
+    navigate("/my-recipes");
   }
 
   if (error) return <p className="error">Could not load recipe: {error}</p>;
