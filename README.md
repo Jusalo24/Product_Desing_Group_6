@@ -32,7 +32,7 @@ recipe-app/
         ├── App.tsx           # header + routes
         ├── api.ts            # all backend calls live here
         ├── types.ts          # TS types mirroring backend schemas
-        └── pages/            # list, detail, create form
+        └── pages/            # meal search, list, detail, create form
 ```
 
 ## Requirements
@@ -88,6 +88,19 @@ npm run dev
 
 Open http://localhost:5173.
 
+The homepage searches TheMealDB. Saved recipes remain available at
+http://localhost:5173/my-recipes, and the search page calls the backend at
+`/api/meals/search?q=...`, matching the meal-search route used by the
+TheMealDB-implementation branch.
+
+### Frontend tests
+
+```bash
+cd frontend
+npm install
+npm test
+```
+
 ## VS Code
 
 Open the `recipe-app` folder (not a subfolder). VS Code will suggest the recommended
@@ -106,9 +119,7 @@ extensions. Select the Python interpreter at `backend/.venv`. There is also a
 ## Ideas for next steps
 
 - Edit recipe (PUT endpoint + form)
-- Search and filtering (by title, ingredient, prep time)
 - Categories / tags (many-to-many table)
 - Recipe images (upload or URL)
 - User accounts and login
 - Switch from `create_all` to Alembic migrations when the schema starts changing
-- Tests (pytest for backend, Vitest for frontend)
