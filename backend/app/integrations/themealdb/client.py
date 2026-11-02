@@ -43,6 +43,13 @@ def _map_meal(item: dict[str, Any]) -> dict[str, Any]:
         "instructions": item.get("strInstructions"),
         "thumbnail_url": item.get("strMealThumb"),
         "source_url": item.get("strSource") or f"https://www.themealdb.com/meal/{meal_id}",
+        "tags": [
+            tag.strip()
+            for tag in (item.get("strTags") or "").split(",")
+            if tag.strip()
+        ],
+        "youtube_url": item.get("strYoutube"),
+        "creative_commons_confirmed": item.get("strCreativeCommonsConfirmed"),
         "ingredients": ingredients,
         "source": _source(meal_id),
     }
@@ -58,10 +65,14 @@ class TheMealDbClient:
             self._client.close()
 
     def _request(self, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
-        url = httpx.URL(
-            f"{settings.themealdb_api_base_url.rstrip('/')}/{path.lstrip('/')}"
+        base_url = httpx.URL(settings.themealdb_api_base_url.rstrip("/"))
+        base_path = base_url.path.rstrip("/")
+        if "/v1/" in base_path:
+            base_path = f"{base_path.rsplit('/v1/', 1)[0]}/v1"
+        url = base_url.copy_with(
+            path=f"{base_path}/{settings.themealdb_api_key}/{path.lstrip('/')}"
         ).copy_merge_params(params or {})
-        logger.info("TheMealDB request: %s", url)
+        logger.info("TheMealDB request: %s/%s", base_url.host, path.lstrip("/"))
         try:
             response = self._client.get(url)
             response.raise_for_status()

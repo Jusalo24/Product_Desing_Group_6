@@ -7,7 +7,7 @@ from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import settings
 from app.database import Base, engine
 from app.routers import recipes
-from app.routers import external_recipes, ingredients, nutrition
+from app.routers import external_recipes, ingredients, meals, nutrition
 
 
 @asynccontextmanager
@@ -27,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(recipes.router, prefix="/api")
+app.include_router(meals.router, prefix="/api")
 app.include_router(ingredients.router, prefix="/api")
 app.include_router(nutrition.router, prefix="/api")
 app.include_router(external_recipes.router, prefix="/api")

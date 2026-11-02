@@ -83,6 +83,7 @@ class ExternalMeal(BaseModel):
     instructions: str | None = None
     thumbnail_url: str | None = None
     source_url: str | None = None
+    youtube_url: str | None = None
     ingredients: list[dict[str, str]] = []
     source: SourceInfo
 
