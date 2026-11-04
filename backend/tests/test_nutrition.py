@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from app.integrations.fineli.client import FineliClient
+from app.integrations.fineli.local_client import LocalFineliClient
 
 
 def fineli_food(food_id: str = "1") -> dict:
@@ -22,7 +22,7 @@ def fineli_food(food_id: str = "1") -> dict:
         },
         "source": {
             "provider": "Fineli",
-            "source_type": "api",
+            "source_type": "dataset",
             "external_id": food_id,
             "source_url": f"https://fineli.test/{food_id}",
             "retrieved_at": datetime.now(timezone.utc),
@@ -33,7 +33,7 @@ def fineli_food(food_id: str = "1") -> dict:
 
 def mock_fineli(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        FineliClient,
+        LocalFineliClient,
         "get_food",
         lambda self, food_id: fineli_food(food_id),
     )

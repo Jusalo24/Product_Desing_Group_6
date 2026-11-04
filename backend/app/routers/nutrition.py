@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
-from app.integrations.fineli.client import ExternalProviderError, FineliClient
+from app.integrations.fineli.factory import get_fineli_client
+from app.integrations.fineli.local_client import FineliFoodNotFound
 
 router = APIRouter(prefix="/recipes", tags=["nutrition"])
 REQUIRED = ("energy_kcal", "protein_g", "carbohydrates_g", "fat_g")
@@ -62,12 +63,15 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
     sources: list[dict] = []
     if not recipe.ingredients:
         raise HTTPException(422, "Recipe needs at least one ingredient")
+    client = get_fineli_client(db)
     try:
-        client = FineliClient()
         for ingredient in recipe.ingredients:
             if not ingredient.fineli_id or ingredient.quantity is None or ingredient.unit not in {"g", "kg"}:
                 raise HTTPException(422, "All ingredients need a Fineli match and g/kg quantity")
-            food = client.get_food(ingredient.fineli_id)
+            try:
+                food = client.get_food(ingredient.fineli_id)
+            except FineliFoodNotFound as exc:
+                raise HTTPException(422, f"Unknown Fineli food id {ingredient.fineli_id}") from exc
             values = food["nutrients_per_100g"]
             if any(values.get(field) is None for field in REQUIRED):
                 raise HTTPException(422, "A required nutrient is missing from Fineli")
@@ -86,7 +90,6 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
                 if value is not None:
                     total[field] += float(value) * grams / 100
             sources.append(_source_value(food["source"]))
-        client.close()
         run.status = "completed"
         run.is_active = True
         run.created_at = datetime.now(timezone.utc)
@@ -117,6 +120,5 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
         run.status, run.error_code = "failed", "invalid_ingredient"
         db.rollback()
         raise
-    except ExternalProviderError as exc:
-        db.rollback()
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Fineli unavailable") from exc
+    finally:
+        client.close()
