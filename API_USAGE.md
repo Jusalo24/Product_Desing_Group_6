@@ -427,6 +427,19 @@ All paths are appended to `{base}/{KEY}/`.
 4. **Optional fields** (`strYoutube`, `strSource`, `strTags`, `strCreativeCommonsConfirmed`) may be missing, `null`, or empty.
 5. **Preserve the recipe as written.** Do not invent missing quantities or silently substitute ingredients.
 
+### Current application integration
+
+The recipe-search page calls the FastAPI endpoint
+`GET /api/meals/search?q=...`. It returns an array of meals with recipe name,
+category, area, instructions, image, source link, video link, and ingredients.
+Each ingredient retains its source measure. The UI links to TheMealDB and
+credits it for recipe data and imagery.
+
+Configure `THEMEALDB_API_KEY` in `backend/.env` (the development default is
+`1`). `THEMEALDB_API_BASE_URL` should point to the API version root, such as
+`https://www.themealdb.com/api/json/v1`; existing values ending in `/v1/1`
+remain supported.
+
 ### 6.3 Schemas (raw API shapes)
 
 ```ts
@@ -1966,4 +1979,3 @@ Result of checking this document's claims on 2026-10-29. "Verified" means confir
 | Retry, timeout, cancellation, redaction, caching, de-duplication, concurrency limit behave as documented | Verified | Tests in section 10, mutation-checked |
 | Behavior against the live APIs | **Not tested** | Test environment could not reach either API; all HTTP is mocked |
 | Express route example end to end | **Not tested** | Only the error handler is unit-tested |
-
