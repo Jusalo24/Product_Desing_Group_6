@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -98,3 +98,35 @@ class ExternalCacheEntry(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class FineliFood(Base):
+    """One Fineli food, nutrients per 100 g. Filled by app.scripts.import_fineli."""
+
+    __tablename__ = "fineli_foods"
+
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)  # Fineli FOODID
+    name_fi: Mapped[str] = mapped_column(String(300), index=True)
+    name_en: Mapped[str | None] = mapped_column(String(300), nullable=True, index=True)
+    energy_kj: Mapped[float | None] = mapped_column(Float, nullable=True)
+    energy_kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
+    protein_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    carbohydrates_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fat_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fiber_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    salt_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sugars_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    saturated_fat_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class FineliFoodUnit(Base):
+    """Grams per household unit (tbsp, piece, ...) for a food."""
+
+    __tablename__ = "fineli_food_units"
+
+    food_id: Mapped[str] = mapped_column(
+        ForeignKey("fineli_foods.id", ondelete="CASCADE"), primary_key=True
+    )
+    unit_code: Mapped[str] = mapped_column(String(30), primary_key=True)
+    unit_name: Mapped[str] = mapped_column(String(100))
+    grams: Mapped[float] = mapped_column(Float)

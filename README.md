@@ -47,46 +47,185 @@ recipe-app/
 
 ### 1. Database
 
-```bash
-docker compose up -d
+From the repository root, start the database:
+
+```powershell
+docker compose up -d db
 ```
 
 ### 2. Backend
 
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env             # Windows: copy .env.example .env
-uvicorn app.main:app --reload
+Open a terminal in the repository root, then run each command below in order. Keep
+using this same terminal for the backend.
+
+```powershell
+Set-Location backend
 ```
 
-- API: http://localhost:8000
-- Interactive API docs (try endpoints in the browser): http://localhost:8000/docs
+Create the virtual environment once:
 
-Tables are created automatically on startup.
+```powershell
+python -m venv .venv
+```
+
+Activate it whenever you open a new backend terminal:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Install the backend dependencies:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Create `backend/.env` once. If it already exists, do not overwrite it; make sure its
+`DATABASE_URL` is `postgresql+psycopg://recipes:recipes@127.0.0.1:5433/recipes`.
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Start the backend and leave this terminal open:
+
+```powershell
+python -m uvicorn app.main:app --reload
+```
+
+Wait for `Application startup complete`. The API health check is
+http://localhost:8000/api/health, and interactive API docs are at
+http://localhost:8000/docs. Tables are created automatically on startup.
+
+To check the API from another PowerShell terminal:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/api/health
+```
+
+To stop the backend, press `Ctrl+C` in its terminal. To leave the virtual environment
+after stopping the backend, run:
+
+```powershell
+deactivate
+```
+
+If PowerShell blocks virtual-environment activation, skip activation and run the
+backend tools through the environment's Python instead:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+On macOS/Linux, run the following commands from the repository root, in order:
+
+```bash
+cd backend
+```
+
+```bash
+python3 -m venv .venv
+```
+
+```bash
+source .venv/bin/activate
+```
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+```bash
+cp .env.example .env
+```
+
+```bash
+python -m uvicorn app.main:app --reload
+```
+
+To leave the virtual environment on macOS/Linux, run `deactivate` after stopping
+the backend with `Ctrl+C`.
+
+### Fineli nutrition data (one-time setup)
+
+Fineli's API blocks our backend (Cloudflare), so nutrition data is imported from the open
+data package instead. The data is not stored in git.
+The staging and import commands display progress while processing the data.
+
+1. Download the Fineli Rel20 nutrient-data ZIP in your browser and move it to the
+   repository root. Keep the filename `Fineli_Rel20__74_ravintotekij__.zip`.
+2. From `backend/`, stage the required CSV files into `backend/data/fineli/`:
+
+   ```powershell
+   python -m app.scripts.download_fineli
+   ```
+
+   Use `--output-dir` to change the staging directory.
+3. With the database running, import the data from `backend/`:
+
+   ```powershell
+   python -m app.scripts.import_fineli
+   ```
+
+The backend uses the imported local dataset for Fineli lookups and does not rely on
+Fineli's online API. Re-running the import safely replaces the previous Fineli dataset.
+Data: Fineli, Finnish Institute for Health and Welfare (THL), CC BY 4.0.
 
 ### Backend API tests
 
 The backend tests use an isolated in-memory SQLite database and do not require
 Docker or modify the local PostgreSQL database.
 
-```bash
-cd backend
+From the repository root, switch to `backend/`:
+
+```powershell
+Set-Location backend
+```
+
+Activate the virtual environment:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Install the test dependencies:
+
+```powershell
 python -m pip install -r requirements-dev.txt
+```
+
+Run the tests:
+
+```powershell
 python -m pytest -q
 ```
 
 ### 3. Frontend
 
-```bash
-cd frontend
+Open another terminal in the repository root and switch to `frontend/`:
+
+```powershell
+Set-Location frontend
+```
+
+Install the frontend dependencies:
+
+```powershell
 npm install
+```
+
+Start the frontend:
+
+```powershell
 npm run dev
 ```
 
-Open http://localhost:5173.
+Open http://localhost:5173. Leave this terminal open while using the app. Stop the
+frontend with `Ctrl+C`.
 
 The homepage searches TheMealDB. Saved recipes remain available at
 http://localhost:5173/my-recipes, and the search page calls the backend at
@@ -95,9 +234,15 @@ TheMealDB-implementation branch.
 
 ### Frontend tests
 
-```bash
-cd frontend
-npm install
+Open another terminal in the repository root and switch to `frontend/`:
+
+```powershell
+Set-Location frontend
+```
+
+Run the frontend tests:
+
+```powershell
 npm test
 ```
 
