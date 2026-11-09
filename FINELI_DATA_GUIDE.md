@@ -16,7 +16,7 @@ Fineli is the Finnish national food composition database, maintained by the Finn
 | Fact | Value | Status |
 | --- | --- | --- |
 | Package we use | "Nutrient data package", release **20.0** | ✅ |
-| License | Creative Commons Attribution 4.0 (CC BY 4.0) | ✅ (stated in `descript.txt`) |
+| License | Creative Commons Attribution 4.0 (CC BY 4.0) | ✅ (stated in the downloaded package's `descript.txt`; official current terms still need release-time confirmation) |
 | Copyright holder | THL (Terveyden ja hyvinvoinnin laitos) | ✅ |
 | Format | Plain text CSV files, `;` separated | ✅ |
 | Liability | THL is not liable for errors or misinterpretation | ✅ |
@@ -27,9 +27,9 @@ Fineli's web API has blocked requests from our backend in the current setup. The
 
 ### Where Fineli data appears in the app
 
-The imported dataset is available through the backend API, but the current frontend does
-not yet display Fineli food search results or nutrition values. The home page searches
-TheMealDB, and the recipe form is not yet connected to Fineli ingredient matching.
+The imported dataset is available through the backend API and is used by the recipe
+detail page to suggest Fineli foods, save user-confirmed ingredient matches, and show
+approximate nutrition estimates with per-ingredient contributions and coverage.
 
 With the backend running, try a lookup in a browser or PowerShell:
 
@@ -37,10 +37,12 @@ With the backend running, try a lookup in a browser or PowerShell:
 http://localhost:8000/api/ingredients/search?q=sugar
 ```
 
-The response includes matching foods, nutrient values per 100 g, and Fineli/THL source
-attribution. The same endpoint is listed in the interactive API docs at
+The response includes matching foods, normalized nutrient values, detailed Fineli
+component values and units per 100 g, food-specific household-unit weights, and
+Fineli/THL source attribution. The same endpoint is listed in the interactive API docs at
 `http://localhost:8000/docs` under **ingredients → GET `/api/ingredients/search`**.
-Displaying these results in the frontend requires a separate UI change.
+The recipe detail page uses the bounded suggestions endpoint and displays the
+confirmed match and resulting estimate.
 
 ### Attribution (required by CC BY 4.0)
 
@@ -48,7 +50,13 @@ Wherever we show Fineli-derived data, include the required attribution. The back
 
 > Source: Fineli, Finnish Institute for Health and Welfare (THL), release 20.0, CC BY 4.0
 
-Keep the attribution visible or readily accessible when changing the UI. The importer derives kcal from kJ, and the recipe endpoint calculates totals from per-100-g values; make those transformations clear in the product.
+Keep the attribution visible or readily accessible when changing the UI. The importer
+derives kcal from kJ, and the estimate scales per-100-g values by confirmed ingredient
+weights; the UI labels the result approximate and shows coverage and skipped reasons.
+Fineli's official open-data/API pages returned HTTP 403 to the research request on
+2026-11-09. Before public redistribution or release, verify the current license,
+attribution and access conditions against the official source as well as the downloaded
+release's `descript.txt`.
 
 ---
 
@@ -166,7 +174,7 @@ Our API exposes nine nutrient fields, always **per 100 g** of food. Each maps to
 | `sugars_g` | `SUGAR` | sugars, total | ✅ |
 | `saturated_fat_g` | `FASAT` | fatty acids, total saturated | ✅ |
 
-Other codes worth knowing: `NA` (sodium), `FAPU` (polyunsaturated fat), `FAMCIS` (monounsaturated cis fat), `FATRN` (trans fat), `XENERC` (energy calculated without fibre). The component list contains about 190 codes, mostly individual fatty acids (`F18D2CN6` and so on) and a few vitamins and minerals. Add more columns only when the UI needs them.
+Other codes worth knowing: `NA` (sodium), `FAPU` (polyunsaturated fat), `FAMCIS` (monounsaturated cis fat), `FATRN` (trans fat), `XENERC` (energy calculated without fibre). The inspected Rel20 package contains 74 component codes, including vitamins, minerals, and fatty-acid components. All numeric component values are imported with their code, English name, source unit, and group, rather than adding a database column for each nutrient.
 
 ### 4.2 Units
 
@@ -197,11 +205,11 @@ python -m app.scripts.download_fineli
 First download the Fineli Rel20 nutrient-data ZIP in your browser and move it to the
 repository root, keeping the filename `Fineli_Rel20__74_ravintotekij__.zip`. The
 script does not download the archive; it looks for that exact file at the project
-root, then stages the seven required CSVs in `backend/data/fineli/`. The archive and
+root, then stages the nine required CSVs in `backend/data/fineli/`. The archive and
 the `backend/data/` folder are gitignored. To use another staging directory, pass
 `--output-dir`.
 
-The script validates that the archive contains all seven required CSVs before
+The script validates that the archive contains all nine required CSVs before
 staging them.
 
 **Run the importer** (from `backend/`, with the database running):
@@ -212,24 +220,27 @@ staging them.
 .\.venv\Scripts\python.exe -m app.scripts.import_fineli --data-dir "C:\path\to\fineli"
 ```
 
-**Input:** these seven files in `backend/data/fineli/` (gitignored, never committed):
+**Input:** these nine files in `backend/data/fineli/` (gitignored, never committed):
 
-`food.csv`, `foodname_EN.csv`, `component.csv`, `compunit_EN.csv`, `component_value.csv`, `foodaddunit.csv`, `foodunit_EN.csv`
+`food.csv`, `foodname_EN.csv`, `component.csv`, `eufdname_EN.csv`, `cmpclass_EN.csv`, `compunit_EN.csv`, `component_value.csv`, `foodaddunit.csv`, `foodunit_EN.csv`
 
 **Steps:**
 
-1. Check that all seven files exist, otherwise stop and name the missing ones.
-2. Read each nutrient's unit from `component.csv` and `compunit_EN.csv`. Stop on unknown units.
-3. Read `component_value.csv`, retain only the component codes used by the app (including the `FIBT` fibre fallback), parse decimal commas, convert units, and treat blank or non-numeric values as missing. The current implementation reads the CSV into memory rather than streaming it.
-4. Build one record per food: Finnish name (from `food.csv`), English name (from `foodname_EN.csv`), nutrients, and derived kcal.
-5. Build unit conversions from `foodaddunit.csv`, with readable names from `foodunit_EN.csv`. Rows for unknown foods or with unreadable mass are skipped.
-6. Empty both Fineli tables and insert the imported records in a database transaction. **Re-running is safe**; each successful run replaces the previous imported dataset.
+1. Check that all nine files exist, otherwise stop and name the missing ones.
+2. Read each normalized field's units from `component.csv` and `compunit_EN.csv`; stop on unsupported units. Detailed values retain Fineli's source unit.
+3. Read every component definition with its English name (`eufdname_EN.csv`), display unit, and component group (`cmpclass_EN.csv`).
+4. Read `component_value.csv`, parse decimal commas, retain every numeric component value per 100 g, and leave blank or non-numeric values missing. The current implementation reads the CSV into memory rather than streaming it.
+5. Build one record per food: Finnish name (from `food.csv`), English name (from `foodname_EN.csv`), normalized fields, and derived kcal.
+6. Build unit conversions from `foodaddunit.csv`, with readable names from `foodunit_EN.csv`. Rows for unknown foods or with unreadable mass are skipped.
+7. Create the required tables if absent, then replace the Fineli catalog in a database transaction. **Re-running is safe**; each successful run replaces the previous imported dataset.
 
 **Output tables:**
 
 | Table | Columns | Rows (roughly) |
 | --- | --- | --- |
 | `fineli_foods` | `id` (FOODID, text), `name_fi`, `name_en`, `energy_kj`, `energy_kcal`, `protein_g`, `carbohydrates_g`, `fat_g`, `fiber_g`, `salt_g`, `sugars_g`, `saturated_fat_g` (nullable floats) | a few thousand ⚠️ |
+| `fineli_components` | component code, English name, source unit, group label | all component definitions in the release |
+| `fineli_food_nutrients` | food ID, component code, numeric value per 100 g in the component's Fineli unit | numeric food/component pairs |
 | `fineli_food_units` | `food_id`, `unit_code`, `unit_name`, `grams` | tens of thousands ⚠️ |
 
 **How the backend reads it:**
@@ -237,7 +248,9 @@ staging them.
 - `LocalFineliClient` (`app/integrations/fineli/local_client.py`) has the same `search_foods` and `get_food` methods as the old HTTP client.
 - `get_fineli_client(db)` (`factory.py`) always returns the local dataset client. Ingredient search and nutrition recalculation do not call Fineli's HTTP API.
 - Search is a case-insensitive "contains" match on English and Finnish names. Results are ranked exact match first, then prefix match, then shorter names first, and limited to 20.
-- An unknown food id gives **404** from `/api/ingredients/{id}` and **422** during nutrition recalculation.
+- Detailed nutrients and food-specific unit weights are loaded locally with the food.
+- `/api/ingredients/suggestions?q=...` returns up to five normalized/alias-ranked candidates; alias mapping never confirms a match automatically.
+- An unknown food id gives **404** from `/api/ingredients/{id}`. During nutrition recalculation it is reported as a skipped ingredient (`food_not_found`); it does not fail the whole recipe.
 
 When Fineli publishes a new release, update the `FINELI_RELEASE` constant in `local_client.py` so the attribution text stays correct.
 
@@ -245,21 +258,24 @@ When Fineli publishes a new release, update the `FINELI_RELEASE` constant in `lo
 
 ## 6. Refining the data
 
-The current implementation imports the nutrient fields and household-unit rows described above. The items below are product and data-quality improvements, not claims about existing behavior; section 6.1 and the search notes in 6.6 describe the current search behavior where relevant.
+Sections 6.1, 6.3, and 6.4 describe implemented behavior. Sections 6.2, 6.5,
+and 6.6 identify data-quality improvements not currently applied to estimates.
 
-### 6.1 Make ingredient matching work (highest impact)
+### 6.1 Ingredient matching in the application
 
-TheMealDB gives ingredient names like `Chicken Breasts`, `Plain Flour`, `Olive Oil`. Fineli names follow their own conventions. A naive "contains" search finds too much or nothing.
+TheMealDB names such as `Chicken Breasts`, `Plain Flour`, and `Olive Oil` do not
+always match Fineli naming. `GET /api/ingredients/suggestions?q=...` applies
+deterministic text normalization, a small reviewed alias list in
+`backend/app/data/fineli-ingredient-aliases.json`, and candidate ranking; it
+returns at most five results. An alias only influences suggestions. The user
+must choose a result explicitly before its Fineli ID/name is stored on the
+ingredient. The source ingredient label and measure remain unchanged.
 
-Suggested layers, from cheapest to most powerful:
+Maintain aliases as reviewed suggestions, not as nutritional equivalences.
+Inspect the Fineli food description and processing state before confirming a
+match. Fuzzy matching or silently confirming the first result is not enabled.
 
-1. **Normalize both sides.** Lowercase, trim, drop plural endings, remove words like "fresh", "chopped", "large".
-2. **Prefer exact matches**, then prefix matches, then contains matches. The local search ranks exact and prefix matches first across both Finnish and English names; it does not currently prefer English over Finnish.
-3. **Alias table.** A small hand-made map for common mismatches, for example `plain flour` to the Fineli wheat flour entry, `spring onion` to the Fineli equivalent. Start with the 30 to 50 ingredients that appear most in TheMealDB.
-4. **Fuzzy matching.** PostgreSQL `pg_trgm` (trigram similarity), or the Python library `rapidfuzz`, to rank near matches.
-5. **Let the user confirm.** Show the top 3 suggestions and let the user pick. Store the choice in `ingredient.fineli_id`. This also gives you a ready-made list of corrections to feed back into the alias table.
-
-### 6.2 Prefer basic foods over composite dishes
+### 6.2 Future improvement: prefer basic foods over composite dishes
 
 ⚠️ `food.csv` has `FOODTYPE` and `PROCESS` columns (the sample rows show `FOOD` and `IND`). Fineli also contains composite foods and dishes built from recipe rows (`contribfood.csv`). When a user types "potato", they almost certainly mean the raw ingredient, not a prepared dish.
 
@@ -271,25 +287,29 @@ Before filtering, **inspect the distinct values** of `FOODTYPE`, `PROCESS`, `IGC
 
 ### 6.3 Quantities: from "2 tbsp" to grams
 
-Our nutrition calculation currently accepts only `g` and `kg`, because Fineli values are per 100 g. TheMealDB measures are strings (`1 tbsp`, `2 cloves`, `200g`, `1/2 cup`). The `fineli_food_units` table is the bridge.
+Nutrition values are per 100 g. The current measure parser in
+`backend/app/integrations/fineli/measure.py` accepts positive metric grams and
+kilograms, fractions/mixed fractions for supported expressions, and a reviewed
+set of household-unit names/codes when the selected food has a corresponding
+Fineli `foodaddunit` entry. Household conversions are marked `estimated`;
+metric conversions are `exact`.
 
-Plan:
-
-1. **Parse** the measure string into a quantity and a unit. Handle fractions (`1/2`), ranges, and "a pinch".
-2. **Direct metric units:** `g`, `kg` need no lookup. `ml` and `l` need a density, see below.
-3. **Household units:** map the parsed unit (tbsp, tsp, cup, clove, slice, piece) to a Fineli unit code, then look up grams in `fineli_food_units` for the chosen food. ⚠️ Codes seen so far include `KG`, `DL`, `L`, `PORTM`, `PORTL`, `KPL_S`. Read `foodunit_EN.csv` in full to build the mapping; do not guess what each code means.
-4. **No conversion available?** Do not silently guess. Mark the ingredient with a status. The `IngredientRead` schema already has a `conversion_status` field for this. For example `exact`, `estimated`, `unknown`. Show totals as "partial" when anything is unknown.
-5. **Volume to weight** (when only `foodaddunit` has `DL` for the food): `DL` gives grams per decilitre, so `1 dl = mass_g`, and `1 tbsp` is 0.15 dl (15 ml), `1 tsp` is 0.05 dl, `1 cup` is about 2.4 dl. This is an approximation; label it "estimated".
+Ranges, qualitative measures, unsupported units, and volume units without a
+food-specific Fineli conversion remain unknown. No generic density conversion
+is used. The original TheMealDB measure is retained even after a conversion;
+an unknown conversion has no grams and is shown as a skipped ingredient in the
+estimate.
 
 ### 6.4 Handle missing nutrient values deliberately
 
-The nutrition endpoint refuses (HTTP 422) any recipe that contains a food missing energy, protein, carbohydrates or fat. That is correct and safe, but harsh for users. Options:
-
-- **Keep strict** and show a clear message naming the ingredient that blocks the calculation. Cheapest and honest.
-- **Partial totals**: calculate what is known, and display "excluding: X, Y". More useful, but the UI must make the gap obvious.
-- **Never fill gaps with zero.** A missing value is not zero. Treating it as zero understates the totals and is the most common way nutrition apps go wrong.
-
-Fix this at the source too: after the first import, count how many foods have missing required fields (section 8.3). If a significant share of common foods is affected, check whether the missing values have a documented alternative code (for example a food that has `CHOCDF` but no `CHOAVL`).
+The estimate includes a confirmed, weighted ingredient when it has at least one
+known normalized or detailed nutrient. Missing individual nutrients remain
+`null` in normalized totals and absent from detailed totals; they are never
+replaced with zero. Ingredients without a match, usable grams, an available
+Fineli ID, or usable nutrients get an explicit skipped reason in the response.
+The response status is `completed`, `partial`, or `unavailable`, with coverage
+over all recipe ingredients. The UI shows partial totals at every nonzero
+coverage and states when nothing could contribute.
 
 ### 6.5 Edible portion
 
@@ -310,7 +330,7 @@ Fix this at the source too: after the first import, count how many foods have mi
 3. With the database running, run `python -m app.scripts.import_fineli` from `backend/`. It replaces the existing imported Fineli rows.
 4. Update `FINELI_RELEASE` in `app/integrations/fineli/local_client.py` to match the release you imported.
 5. Run the backend test suite (`python -m pytest -q`).
-6. **Check for orphaned ids.** Food ids can disappear or change between releases. Any `ingredient.fineli_id` that no longer exists will now return 422. Find them:
+6. **Check for orphaned ids.** Food ids can disappear or change between releases. Nutrition recalculation reports an obsolete selected ID as `food_not_found` and excludes that ingredient without failing the rest of the recipe. Find them:
 
 ```sql
 SELECT i.id, i.name, i.fineli_id
@@ -320,6 +340,7 @@ WHERE i.fineli_id IS NOT NULL AND f.id IS NULL;
 ```
 
 7. Spot-check several foods you know well (for example milk, rice, or olive oil) against the Fineli website.
+8. Recheck release metadata, attribution/license conditions and the downloaded `descript.txt`. Historical calculation runs retain ingredient-level nutrient contribution snapshots; new calculations use the currently imported release. Public release remains blocked until provider terms and redistribution conditions are verified.
 
 ---
 
@@ -399,9 +420,11 @@ Invoke-RestMethod "http://localhost:8000/api/ingredients/1" | ConvertTo-Json -De
 
 - decimal-comma parsing, blank means `None`, genuine `0` stays `0`
 - unit conversion (mg to g) and the `FIBT` fallback for fibre
+- detailed component labels, source units/groups, numeric values and food-specific unit weights
 - search in English and Finnish, ranking, and that `100%` is treated as literal text
-- unknown food id gives 404 on the ingredient route and 422 on recalculation
-- a complete recalculation with correct totals, and rejection when a required nutrient is missing
+- unknown food id gives 404 on the ingredient route and a skipped outcome during recalculation
+- complete and partial recalculations, per-serving totals, zero coverage, snapshots, and unknown-vs-zero nutrients
+- exact metric conversion, food-specific household conversion, and unsupported measure handling
 - a clear error when data files are missing
 
 `backend/tests/test_fineli_downloader.py` checks that the downloader stages the required files from a nested ZIP and reports missing files.
@@ -417,8 +440,9 @@ Tests never touch the real Fineli data, so they run anywhere. Nutrition route te
 | `FileNotFoundError: Missing in ...: food.csv, ...` | The package has not been downloaded/staged, or a custom data directory is incomplete | Run `python -m app.scripts.download_fineli` from `backend/`, or provide the complete CSV set (section 5) |
 | `ValueError: Unknown unit '...' ... for component ...` | A nutrient uses a unit we have not mapped | Add it to `UNIT_FACTORS` in `import_fineli.py` |
 | Search returns nothing | Dataset has not been downloaded and imported, or query has no matches | Run the downloader and importer, then retry |
-| 422 "Unknown Fineli food id" | The id is not in the imported data (typo, or removed in a new release) | Re-match the ingredient (section 7 step 7) |
-| 422 "A required nutrient is missing from Fineli" | That food has no value for energy, protein, carbs or fat | See section 6.4 |
+| An ingredient is skipped as `food_not_found` | The selected ID is not in the imported data (typo, or removed in a new release) | Re-match the ingredient (section 7) |
+| An ingredient is skipped as `missing_nutrients` | Fineli has no usable nutrient values for that food | See section 6.4 |
+| Coverage is partial or zero | Some matches, conversions, or nutrient values are missing | Review the per-ingredient skipped reasons; do not infer missing values |
 | Names look like `H�D` in the terminal | Terminal display only | Section 8.2. The database is fine if the importer decoded the file as Latin-1 |
 | Names look like `HÃ„D` in the database | File decoded as the wrong encoding | The file is Latin-1; check that the importer fell back from UTF-8 correctly |
 | Import is slow or memory use is high | `component_value.csv` is large; the current importer reads it into memory | Allow the import to finish; if this becomes a recurring issue, optimize the importer to stream rows |
@@ -426,16 +450,11 @@ Tests never touch the real Fineli data, so they run anywhere. Nutrition route te
 
 ---
 
-## 11. Open questions to resolve
+## 11. Release checks still required
 
-These are the unverified items collected from this document. Settle them once, then update the guide.
-
-1. Does the current release define non-numeric `BESTLOC` markers beyond blanks? (section 8.1)
-2. Which units do `NACL` and the other nutrients use in `compunit_EN.csv`? The importer reads them, but note the results.
-3. What do the values of `FOODTYPE`, `PROCESS` and `IGCLASS` mean, and how do we separate basic foods from dishes? (section 6.2)
-4. What does each household unit code mean (`PORTM`, `PORTL`, `KPL_S`, ...)? Read `foodunit_EN.csv`. (section 6.3)
-5. How should `EDPORT` be used, if at all? (section 6.5)
-6. How many foods lack English names or any of the four required nutrients? (section 8.3)
+1. Fineli's official open-data/API pages returned HTTP 403 during the 2026-11-09 research and verification attempts. The downloaded Rel20 `descript.txt` states CC BY 4.0 and names THL as copyright holder. Reconfirm current license, attribution, access, and redistribution terms from the official source before public release.
+2. The importer validates known dataset component units and names but does not assess every nutrient's analytical quality or method. Preserve release metadata and avoid interpreting missing values as zero.
+3. This application does not apply edible-portion adjustments or make diet/allergen safety conclusions.
 
 ---
 
@@ -449,9 +468,12 @@ These are the unverified items collected from this document. Settle them once, t
 | Key identifiers | `FOODID` (food), `EUFDNAME` (nutrient code), `THSCODE` (classification code) |
 | Energy | `ENERC` is kJ; kcal = kJ / 4.184 |
 | Values are | per 100 g |
+| Detailed values | all imported numeric component values, each with source unit and group |
 | Import command | `python -m app.scripts.import_fineli` (from `backend/`) |
 | Download command | `python -m app.scripts.download_fineli` (from `backend/`) |
 | Data folder (gitignored) | `backend/data/fineli/` |
 | Fineli lookup source | Imported local dataset; online API is not used |
-| Tables | `fineli_foods`, `fineli_food_units` |
-| Key code | `app/scripts/import_fineli.py`, `app/integrations/fineli/local_client.py`, `factory.py` |
+| Tables | `fineli_foods`, `fineli_components`, `fineli_food_nutrients`, `fineli_food_units` |
+| Match policy | Ranked suggestions only; user confirmation required |
+| Estimate policy | Partial totals with coverage and per-ingredient skipped reasons; missing remains unknown |
+| Key code | `app/scripts/import_fineli.py`, `app/integrations/fineli/local_client.py`, `app/integrations/fineli/measure.py`, `app/routers/nutrition.py` |
