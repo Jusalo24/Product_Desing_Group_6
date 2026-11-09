@@ -23,6 +23,8 @@ REQUIRED_FILES = (
     "food.csv",
     "foodname_EN.csv",
     "component.csv",
+    "eufdname_EN.csv",
+    "cmpclass_EN.csv",
     "compunit_EN.csv",
     "component_value.csv",
     "foodaddunit.csv",

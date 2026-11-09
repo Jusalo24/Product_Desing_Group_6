@@ -1,11 +1,13 @@
 from pathlib import Path
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app import main
 import app.scripts.import_fineli as fineli_importer
 from app.integrations.fineli.local_client import LocalFineliClient
-from app.models import FineliFood
+from app.models import FineliComponent, FineliFood, FineliFoodNutrient
 from app.scripts.import_fineli import import_fineli, parse_number, read_rows
 
 FILES = {
@@ -22,6 +24,13 @@ FILES = {
         "ENERC;KJ;A;A\nPROT;G;A;A\nCHOAVL;G;A;A\nFAT;G;A;A\nFIBT;G;A;A\n"
         "NACL;MG;A;A\nSUGAR;G;A;A\nFASAT;G;A;A\nNA;MG;A;A\n"
     ),
+    "eufdname_EN.csv": (
+        "THSCODE;DESCRIPT;LANG\n"
+        "ENERC;energy, calculated;EN\nFAT;fat, total;EN\nCHOAVL;carbohydrate, available;EN\n"
+        "PROT;protein, total;EN\nFIBT;fibre, total;EN\nNACL;salt;EN\n"
+        "SUGAR;sugars, total;EN\nFASAT;fatty acids, total saturated;EN\nNA;sodium;EN\n"
+    ),
+    "cmpclass_EN.csv": "THSCODE;DESCRIPT;LANG\nA;Other nutrients;EN\n",
     "compunit_EN.csv": "THSCODE;DESCRIPT;LANG\nG;g;EN\nMG;mg;EN\nKJ;kJ;EN\n",
     "component_value.csv": (
         "FOODID;EUFDNAME;BESTLOC;ACQTYPE;METHTYPE;METHIND\n"
@@ -31,8 +40,8 @@ FILES = {
         "3;NACL;39300,0;S;S;M\n"
         "4;ENERC;3700,0;S;S;M\n4;PROT;0;S;S;M\n4;CHOAVL;0;S;S;M\n4;FAT;100;S;S;M\n"
     ),
-    "foodunit_EN.csv": "THSCODE;DESCRIPT;LANG\nPORTM;medium portion;EN\nTBSP;tablespoon;EN\n",
-    "foodaddunit.csv": "FOODID;FOODUNIT;MASS\n1;TBSP;12,50\n1;PORTM;4,00\n99;TBSP;1,00\n",
+    "foodunit_EN.csv": "THSCODE;DESCRIPT;LANG\nPORTM;medium portion;EN\nRKL;tablespoon;EN\n",
+    "foodaddunit.csv": "FOODID;FOODUNIT;MASS\n1;RKL;12,50\n1;PORTM;4,00\n99;RKL;1,00\n",
 }
 
 
@@ -97,6 +106,38 @@ def test_import_converts_units_and_keeps_missing_as_null(local_client) -> None:
     assert fiber["nutrients_per_100g"]["fiber_g"] == 1.5  # FIBT fallback
 
 
+def test_imports_detailed_nutrients_with_labels_and_source_units(local_client) -> None:
+    api_food = local_client.get("/api/ingredients/1").json()
+    detailed = next(item for item in api_food["detailed_nutrients"] if item["code"] == "NA")
+    assert detailed == {
+        "code": "NA",
+        "name": "Sodium",
+        "unit": "mg",
+        "group": "Other nutrients",
+        "value_per_100g": pytest.approx(5),
+    }
+    assert api_food["units"] == [
+        {"code": "PORTM", "name": "medium portion", "grams": pytest.approx(4)},
+        {"code": "RKL", "name": "tablespoon", "grams": pytest.approx(12.5)},
+    ]
+
+    with Session(main.engine) as db:
+        sodium = db.scalar(
+            select(FineliFoodNutrient).where(
+                FineliFoodNutrient.food_id == "1",
+                FineliFoodNutrient.component_code == "NA",
+            )
+        )
+        component = db.get(FineliComponent, "NA")
+
+    assert sodium is not None
+    assert sodium.value_per_100g == pytest.approx(5)
+    assert component is not None
+    assert component.name_en == "Sodium"
+    assert component.unit == "mg"
+    assert component.group_name == "Other nutrients"
+
+
 def test_search_matches_english_and_finnish_and_ranks_exact_first(local_client) -> None:
     names = [f["name"] for f in local_client.get("/api/ingredients/search", params={"q": "sugar"}).json()]
     assert names == ["Sugar", "Fruit sugar"]
@@ -127,6 +168,28 @@ def test_recalculate_nutrition_from_local_dataset(local_client) -> None:
     assert values["fat_g"] == pytest.approx(200.0)       # 100 g/100 g * 200 g
     assert values["energy_kj"] == pytest.approx(7400.0)
     assert response.json()["source"]["provider"] == "Fineli"
+
+
+def test_confirming_match_converts_food_specific_household_measure(local_client) -> None:
+    recipe = local_client.post(
+        "/api/recipes",
+        json={
+            "title": "Tablespoon conversion",
+            "ingredients": [{"name": "sugar", "amount": "1 tbsp"}],
+        },
+    ).json()
+    ingredient = recipe["ingredients"][0]
+
+    response = local_client.put(
+        f"/api/recipes/{recipe['id']}/ingredients/{ingredient['id']}/nutrition-source",
+        json={"fineli_id": "1"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["amount"] == "1 tbsp"
+    assert response.json()["quantity"] == pytest.approx(12.5)
+    assert response.json()["unit"] == "g"
+    assert response.json()["conversion_status"] == "estimated"
 
 
 def test_recalculate_converts_local_food_quantity_from_kilograms(local_client) -> None:
@@ -160,12 +223,14 @@ def test_recalculate_sums_multiple_local_food_ingredients(local_client) -> None:
     assert response.json()["values"]["energy_kj"] == pytest.approx(40700)
 
 
-def test_recalculate_rejects_food_with_missing_required_nutrient(local_client) -> None:
+def test_recalculate_keeps_missing_nutrients_unknown(local_client) -> None:
     response = local_client.post(f"/api/recipes/{_recipe_with(local_client, '1')}/nutrition/recalculate")
-    assert response.status_code == 422  # sugar has no protein value in the fixture
+    assert response.status_code == 200
+    assert response.json()["values"]["protein_g"] is None
+    assert response.json()["coverage"]["included_ingredients"] == 1
 
 
-def test_recalculate_closes_local_client_when_validation_fails(
+def test_recalculate_closes_local_client_after_skipping_missing_nutrient(
     local_client, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     closed: list[bool] = []
@@ -174,14 +239,14 @@ def test_recalculate_closes_local_client_when_validation_fails(
 
     response = local_client.post(f"/api/recipes/{recipe_id}/nutrition/recalculate")
 
-    assert response.status_code == 422
+    assert response.status_code == 200
     assert closed == [True]
 
 
-def test_recalculate_rejects_unknown_fineli_id(local_client) -> None:
+def test_recalculate_skips_unknown_fineli_id(local_client) -> None:
     response = local_client.post(f"/api/recipes/{_recipe_with(local_client, '999', 1)}/nutrition/recalculate")
-    assert response.status_code == 422
-    assert "999" in response.json()["detail"]
+    assert response.status_code == 200
+    assert response.json()["ingredient_results"][0]["reason"] == "food_not_found"
 
 
 def test_import_reports_missing_files(tmp_path: Path) -> None:

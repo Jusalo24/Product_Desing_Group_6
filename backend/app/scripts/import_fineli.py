@@ -17,7 +17,12 @@ from sqlalchemy import Engine, delete, insert
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine as default_engine
-from app.models import FineliFood, FineliFoodUnit
+from app.models import (
+    FineliComponent,
+    FineliFood,
+    FineliFoodNutrient,
+    FineliFoodUnit,
+)
 from app.scripts.progress import ProgressBar
 
 DEFAULT_DIR = Path(__file__).resolve().parents[2] / "data" / "fineli"
@@ -25,6 +30,8 @@ REQUIRED_FILES = (
     "food.csv",
     "foodname_EN.csv",
     "component.csv",
+    "eufdname_EN.csv",
+    "cmpclass_EN.csv",
     "compunit_EN.csv",
     "component_value.csv",
     "foodaddunit.csv",
@@ -52,6 +59,12 @@ UNIT_FACTORS: dict[str, tuple[str, float]] = {
     "kj": ("kj", 1.0), "kilojoule": ("kj", 1.0),
 }
 KCAL_PER_KJ = 1 / 4.184
+UNIT_LABELS = {
+    "G": "g",
+    "KJ": "kJ",
+    "MG": "mg",
+    "UG": "µg",
+}
 
 
 def read_rows(path: Path) -> list[dict[str, str]]:
@@ -125,16 +138,59 @@ def import_fineli(
             if code in units and units[code][0] != target:
                 raise ValueError(f"Component {code} has unexpected unit type {units[code][0]}")
 
-    # component values: {food_id: {component_code: value in g (or kJ)}}
+    # Legacy values are normalized for the existing API; detailed values retain
+    # the Fineli component's source unit and remain keyed by component code.
     values: dict[str, dict[str, float]] = {}
     component_rows = read_rows(data_dir / "component_value.csv")
+    component_definitions = read_rows(data_dir / "component.csv")
+    component_names = {
+        row["THSCODE"]: nice_name(row["DESCRIPT"])
+        for row in read_rows(data_dir / "eufdname_EN.csv")
+    }
+    component_groups = {
+        row["THSCODE"]: row["DESCRIPT"].strip()
+        for row in read_rows(data_dir / "cmpclass_EN.csv")
+    }
+    unit_codes = {
+        row["THSCODE"]: row["DESCRIPT"].strip()
+        for row in read_rows(data_dir / "compunit_EN.csv")
+    }
+    components: list[dict[str, str | None]] = []
+    component_units: dict[str, str] = {}
+    for row in component_definitions:
+        code = row["EUFDNAME"].strip()
+        unit_code = row["COMPUNIT"].strip()
+        label = component_names.get(code)
+        unit = UNIT_LABELS.get(unit_code)
+        if not label:
+            raise ValueError(f"Missing English nutrient name for Fineli component {code}")
+        if not unit:
+            unit_name = unit_codes.get(unit_code, "unknown")
+            raise ValueError(
+                f"Unsupported Fineli component unit {unit_name!r} "
+                f"(code {unit_code!r}) for component {code}"
+            )
+        components.append(
+            {
+                "code": code,
+                "name_en": label,
+                "unit": unit,
+                "group_name": component_groups.get(row["CMPCLASS"]),
+            }
+        )
+        component_units[code] = unit
+
+    detailed_values: dict[tuple[str, str], float] = {}
     with ProgressBar("Processing nutrient values", len(component_rows), show_progress) as progress:
         for row in component_rows:
-            code = row["EUFDNAME"]
+            code = row["EUFDNAME"].strip()
+            food_id = row["FOODID"].strip()
+            number = parse_number(row["BESTLOC"])
+            if number is not None and code in component_units:
+                detailed_values[(food_id, code)] = number
             if code in WANTED_CODES and code in units:
-                number = parse_number(row["BESTLOC"])
                 if number is not None:
-                    values.setdefault(row["FOODID"], {})[code] = number * units[code][1]
+                    values.setdefault(food_id, {})[code] = number * units[code][1]
             progress.advance()
 
     names_en = {r["FOODID"]: nice_name(r["FOODNAME"]) for r in read_rows(data_dir / "foodname_EN.csv")}
@@ -173,16 +229,41 @@ def import_fineli(
             progress.advance()
 
     with ProgressBar("Preparing Fineli database tables", 1, show_progress) as progress:
-        Base.metadata.create_all(bind=engine, tables=[FineliFood.__table__, FineliFoodUnit.__table__])
+        Base.metadata.create_all(
+            bind=engine,
+            tables=[
+                FineliFood.__table__,
+                FineliFoodUnit.__table__,
+                FineliComponent.__table__,
+                FineliFoodNutrient.__table__,
+            ],
+        )
         progress.advance()
     with Session(engine) as db:
-        with ProgressBar("Replacing existing Fineli data", 2, show_progress) as progress:
+        with ProgressBar("Replacing existing Fineli data", 4, show_progress) as progress:
+            db.execute(delete(FineliFoodNutrient))
+            progress.advance()
+            db.execute(delete(FineliComponent))
+            progress.advance()
             db.execute(delete(FineliFoodUnit))
             progress.advance()
             db.execute(delete(FineliFood))
             progress.advance()
         for model, records, label in (
             (FineliFood, foods, "Saving food records"),
+            (FineliComponent, components, "Saving nutrient components"),
+            (
+                FineliFoodNutrient,
+                [
+                    {
+                        "food_id": food_id,
+                        "component_code": code,
+                        "value_per_100g": value,
+                    }
+                    for (food_id, code), value in detailed_values.items()
+                ],
+                "Saving detailed nutrient values",
+            ),
             (FineliFoodUnit, food_units, "Saving unit conversions"),
         ):
             with ProgressBar(label, len(records), show_progress) as progress:

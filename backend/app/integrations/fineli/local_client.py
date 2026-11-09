@@ -8,7 +8,12 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import FineliFood
+from app.models import (
+    FineliComponent,
+    FineliFood,
+    FineliFoodNutrient,
+    FineliFoodUnit,
+)
 
 FINELI_RELEASE = "20.0"
 SEARCH_LIMIT = 20
@@ -33,7 +38,11 @@ def _source(food_id: str, name: str) -> dict[str, Any]:
     }
 
 
-def _map_food(food: FineliFood) -> dict[str, Any]:
+def _map_food(
+    food: FineliFood,
+    detailed_nutrients: list[dict[str, Any]],
+    units: list[dict[str, Any]],
+) -> dict[str, Any]:
     name = food.name_en or food.name_fi
     return {
         "id": food.id,
@@ -49,6 +58,8 @@ def _map_food(food: FineliFood) -> dict[str, Any]:
             "sugars_g": food.sugars_g,
             "saturated_fat_g": food.saturated_fat_g,
         },
+        "detailed_nutrients": detailed_nutrients,
+        "units": units,
         "source": _source(food.id, name),
     }
 
@@ -74,6 +85,46 @@ class LocalFineliClient:
     def close(self) -> None:  # the session is owned by the caller
         return None
 
+    def _map_foods(self, foods: list[FineliFood]) -> list[dict[str, Any]]:
+        if not foods:
+            return []
+        food_ids = [food.id for food in foods]
+        nutrient_rows = self._db.execute(
+            select(FineliFoodNutrient, FineliComponent)
+            .join(FineliComponent, FineliComponent.code == FineliFoodNutrient.component_code)
+            .where(FineliFoodNutrient.food_id.in_(food_ids))
+            .order_by(FineliFoodNutrient.component_code)
+        ).all()
+        nutrients_by_food: dict[str, list[dict[str, Any]]] = {}
+        for value, component in nutrient_rows:
+            nutrients_by_food.setdefault(value.food_id, []).append(
+                {
+                    "code": component.code,
+                    "name": component.name_en,
+                    "unit": component.unit,
+                    "group": component.group_name,
+                    "value_per_100g": value.value_per_100g,
+                }
+            )
+        unit_rows = self._db.scalars(
+            select(FineliFoodUnit)
+            .where(FineliFoodUnit.food_id.in_(food_ids))
+            .order_by(FineliFoodUnit.unit_code)
+        ).all()
+        units_by_food: dict[str, list[dict[str, Any]]] = {}
+        for unit in unit_rows:
+            units_by_food.setdefault(unit.food_id, []).append(
+                {"code": unit.unit_code, "name": unit.unit_name, "grams": unit.grams}
+            )
+        return [
+            _map_food(
+                food,
+                nutrients_by_food.get(food.id, []),
+                units_by_food.get(food.id, []),
+            )
+            for food in foods
+        ]
+
     def search_foods(self, query: str) -> list[dict[str, Any]]:
         term = query.strip().lower()
         if not term:
@@ -87,10 +138,10 @@ class LocalFineliClient:
             .limit(500)
         )
         foods = sorted(self._db.scalars(stmt), key=lambda f: _rank(f, term))
-        return [_map_food(food) for food in foods[:SEARCH_LIMIT]]
+        return self._map_foods(foods[:SEARCH_LIMIT])
 
     def get_food(self, food_id: str) -> dict[str, Any]:
         food = self._db.get(FineliFood, str(food_id))
         if food is None:
             raise FineliFoodNotFound(food_id)
-        return _map_food(food)
+        return self._map_foods([food])[0]
