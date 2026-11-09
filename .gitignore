@@ -19,3 +19,7 @@ dist/
 # Fineli open data (CC BY 4.0) - downloaded locally, imported into the DB
 backend/data/
 **/Fineli_Rel20__74_ravintotekij__.zip
+
+# Local implementation reports
+**/batch-report.yaml
+plans/
