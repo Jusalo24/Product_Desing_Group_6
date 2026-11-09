@@ -21,7 +21,7 @@ FILES = {
         "3;SUOLA;DISH;BOIL;100;Y;X;X;X\n"
         "4;ÖLJY;FOOD;IND;100;;;X;X\n"
     ),
-    "foodname_EN.csv": "FOODID;FOODNAME;LANG\n1;SUGAR;EN\n2;FRUIT SUGAR;EN\n4;OIL;EN\n",
+    "foodname_EN.csv": "FOODID;FOODNAME;LANG\n1;SUGAR;EN\n2;FRUIT SUGAR;EN\n4;RICE, WHITE;EN\n",
     "component.csv": (
         "EUFDNAME;COMPUNIT;CMPCLASS;CMPCLASSP\n"
         "ENERC;KJ;A;A\nPROT;G;A;A\nCHOAVL;G;A;A\nFAT;G;A;A\nFIBT;G;A;A\n"
@@ -165,6 +165,15 @@ def test_search_matches_english_and_finnish_and_ranks_exact_first(local_client) 
     assert search_results[0]["ingredient_class"] == "X"
     assert [f["id"] for f in local_client.get("/api/ingredients/search", params={"q": "hedelmä"}).json()] == ["2"]
     assert local_client.get("/api/ingredients/search", params={"q": "100%"}).json() == []
+
+
+def test_search_ignores_commas_and_word_order(local_client) -> None:
+    for query in ("white rice", "rice white", "white, rice"):
+        response = local_client.get("/api/ingredients/search", params={"q": query})
+
+        assert response.status_code == 200
+        assert [food["id"] for food in response.json()] == ["4"]
+        assert response.json()[0]["name"] == "Rice, white"
 
 
 def test_unknown_food_is_404(local_client) -> None:

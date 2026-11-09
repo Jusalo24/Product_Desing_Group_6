@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import FineliFood
@@ -56,12 +57,23 @@ def _map_food(food: FineliFood) -> dict[str, Any]:
     }
 
 
-def _rank(food: FineliFood, term: str) -> tuple[int, int]:
-    """Exact match first, then prefix matches, then shorter names first."""
+def _search_terms(query: str) -> list[str]:
+    """Split a query into order-independent words and ignore commas."""
+    return [term for term in re.split(r"[\s,]+", query.strip().lower()) if term]
+
+
+def _normalized_name(name: str) -> str:
+    return " ".join(re.split(r"[\s,]+", name.strip().lower()))
+
+
+def _rank(food: FineliFood, terms: list[str]) -> tuple[int, int]:
+    """Rank exact normalized matches, prefixes, then shorter names first."""
     names = [n.lower() for n in (food.name_en, food.name_fi) if n]
-    if term in names:
+    normalized_names = [_normalized_name(name) for name in names]
+    normalized_query = " ".join(terms)
+    if normalized_query in normalized_names:
         position = 0
-    elif any(n.startswith(term) for n in names):
+    elif any(name.startswith(normalized_query) for name in normalized_names):
         position = 1
     else:
         position = 2
@@ -78,18 +90,19 @@ class LocalFineliClient:
         return None
 
     def search_foods(self, query: str) -> list[dict[str, Any]]:
-        term = query.strip().lower()
-        if not term:
+        terms = _search_terms(query)
+        if not terms:
             return []
-        stmt = (
-            select(FineliFood)
-            .where(
-                func.lower(FineliFood.name_en).contains(term, autoescape=True)
-                | func.lower(FineliFood.name_fi).contains(term, autoescape=True)
+        foods = [
+            food
+            for food in self._db.scalars(select(FineliFood))
+            if any(
+                all(term in _normalized_name(name) for term in terms)
+                for name in (food.name_en, food.name_fi)
+                if name
             )
-            .limit(500)
-        )
-        foods = sorted(self._db.scalars(stmt), key=lambda f: _rank(f, term))
+        ]
+        foods.sort(key=lambda food: _rank(food, terms))
         return [_map_food(food) for food in foods[:SEARCH_LIMIT]]
 
     def get_food(self, food_id: str) -> dict[str, Any]:
