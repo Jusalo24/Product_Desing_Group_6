@@ -33,6 +33,7 @@ export default function RecipeFormPage() {
     { name: "", amount: "", fineliId: null },
   ]);
   const [suggestions, setSuggestions] = useState<Record<number, FineliFood[]>>({});
+  const [activeSuggestion, setActiveSuggestion] = useState<Record<number, number>>({});
   const [searching, setSearching] = useState<Record<number, boolean>>({});
   const [searchError, setSearchError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -95,26 +96,49 @@ export default function RecipeFormPage() {
   function selectIngredient(index: number, food: FineliFood) {
     updateIngredient(index, { name: food.name, fineliId: food.id });
     setSuggestions((current) => ({ ...current, [index]: [] }));
+    setActiveSuggestion((current) => ({ ...current, [index]: -1 }));
   }
 
   function changeIngredientName(index: number, name: string) {
     searchSequence.current += 1;
     updateIngredient(index, { name, fineliId: null });
     setSuggestions((current) => ({ ...current, [index]: [] }));
+    setActiveSuggestion((current) => ({ ...current, [index]: -1 }));
   }
 
   function handleIngredientKeyDown(
     index: number,
     event: KeyboardEvent<HTMLInputElement>,
   ) {
-    if (event.key !== "Enter") {
+    const options = suggestions[index] ?? [];
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setSuggestions((current) => ({ ...current, [index]: [] }));
+      setActiveSuggestion((current) => ({ ...current, [index]: -1 }));
       return;
     }
 
-    event.preventDefault();
-    const firstSuggestion = suggestions[index]?.[0];
-    if (firstSuggestion) {
-      selectIngredient(index, firstSuggestion);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (options.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      const currentIndex = activeSuggestion[index] ?? -1;
+      const nextIndex =
+        event.key === "ArrowDown"
+          ? (currentIndex + 1) % options.length
+          : (currentIndex - 1 + options.length) % options.length;
+      setActiveSuggestion((current) => ({ ...current, [index]: nextIndex }));
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const selectedIndex = activeSuggestion[index] ?? 0;
+      const selectedSuggestion = options[selectedIndex] ?? options[0];
+      if (selectedSuggestion) {
+        selectIngredient(index, selectedSuggestion);
+      }
     }
   }
 
@@ -252,6 +276,11 @@ export default function RecipeFormPage() {
                   aria-autocomplete="list"
                   aria-controls={`ingredient-suggestions-${i}`}
                   aria-expanded={(suggestions[i]?.length ?? 0) > 0}
+                  aria-activedescendant={
+                    activeSuggestion[i] >= 0
+                      ? `ingredient-suggestion-${i}-${activeSuggestion[i]}`
+                      : undefined
+                  }
                   aria-label={`Ingredient ${i + 1}`}
                 />
                 {searching[i] && <small className="field-hint">Searching Fineli…</small>}
@@ -261,8 +290,18 @@ export default function RecipeFormPage() {
                     className="ingredient-suggestions"
                     role="listbox"
                   >
-                    {suggestions[i].map((food) => (
-                      <li key={food.id} role="option">
+                    {suggestions[i].map((food, suggestionIndex) => (
+                      <li
+                        key={food.id}
+                        id={`ingredient-suggestion-${i}-${suggestionIndex}`}
+                        role="option"
+                        aria-selected={activeSuggestion[i] === suggestionIndex}
+                        className={
+                          activeSuggestion[i] === suggestionIndex
+                            ? "suggestion-active"
+                            : undefined
+                        }
+                      >
                         <button type="button" onClick={() => selectIngredient(i, food)}>
                           {food.name}
                         </button>

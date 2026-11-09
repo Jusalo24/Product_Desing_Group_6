@@ -173,6 +173,10 @@
   padding: 0.65rem 0.75rem;
 }
 
+.ingredient-suggestions .suggestion-active button {
+  background: #f3eee8;
+}
+
 .remove-ingredient {
   width: 2.5rem;
   height: 2.5rem;
