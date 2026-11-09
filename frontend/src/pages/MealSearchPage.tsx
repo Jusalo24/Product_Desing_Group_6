@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { api } from "../api";
 
 type Meal = {
   id: string;
@@ -62,11 +64,32 @@ function getErrorMessage(body: unknown, status: number): string {
 }
 
 export default function MealSearchPage() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("Arrabiata");
   const [meals, setMeals] = useState<Meal[]>([]);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [savingMealId, setSavingMealId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState("");
+
+  async function saveSelectedMeal() {
+    if (!selectedMeal) return;
+    setSavingMealId(selectedMeal.id);
+    setSaveError("");
+    try {
+      const recipe = await api.importExternalRecipe(selectedMeal.id);
+      navigate(`/recipes/${recipe.id}`);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error
+          ? `Could not save recipe: ${err.message}`
+          : "Could not save recipe.",
+      );
+    } finally {
+      setSavingMealId(null);
+    }
+  }
 
   async function searchMeals(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -246,6 +269,18 @@ export default function MealSearchPage() {
               </a>
             </p>
           )}
+
+          <button
+            type="button"
+            className="button"
+            onClick={saveSelectedMeal}
+            disabled={savingMealId === selectedMeal.id}
+          >
+            {savingMealId === selectedMeal.id
+              ? "Saving recipe…"
+              : "Save recipe for nutrition"}
+          </button>
+          {saveError && <p role="alert">{saveError}</p>}
         </section>
       )}
 
