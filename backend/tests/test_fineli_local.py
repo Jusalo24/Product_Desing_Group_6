@@ -6,15 +6,20 @@ from app import main
 import app.scripts.import_fineli as fineli_importer
 from app.integrations.fineli.local_client import LocalFineliClient
 from app.models import FineliFood
-from app.scripts.import_fineli import import_fineli, parse_number, read_rows
+from app.scripts.import_fineli import (
+    analyze_classifications,
+    import_fineli,
+    parse_number,
+    read_rows,
+)
 
 FILES = {
     "food.csv": (
         "FOODID;FOODNAME;FOODTYPE;PROCESS;EDPORT;IGCLASS;IGCLASSP;FUCLASS;FUCLASSP\n"
         "1;SOKERI;FOOD;IND;100;X;X;X;X\n"
         "2;HEDELMÄSOKERI;FOOD;IND;100;X;X;X;X\n"
-        "3;SUOLA;FOOD;IND;100;X;X;X;X\n"
-        "4;ÖLJY;FOOD;IND;100;X;X;X;X\n"
+        "3;SUOLA;DISH;BOIL;100;Y;X;X;X\n"
+        "4;ÖLJY;FOOD;IND;100;;;X;X\n"
     ),
     "foodname_EN.csv": "FOODID;FOODNAME;LANG\n1;SUGAR;EN\n2;FRUIT SUGAR;EN\n4;OIL;EN\n",
     "component.csv": (
@@ -33,6 +38,9 @@ FILES = {
     ),
     "foodunit_EN.csv": "THSCODE;DESCRIPT;LANG\nPORTM;medium portion;EN\nTBSP;tablespoon;EN\n",
     "foodaddunit.csv": "FOODID;FOODUNIT;MASS\n1;TBSP;12,50\n1;PORTM;4,00\n99;TBSP;1,00\n",
+    "foodtype_EN.csv": "THSCODE;DESCRIPT;LANG\nFOOD;Food;EN\nDISH;Dish;EN\n",
+    "process_EN.csv": "THSCODE;DESCRIPT;LANG\nIND;Industrial;EN\nBOIL;Boiled;EN\n",
+    "igclass_EN.csv": "THSCODE;DESCRIPT;LANG\nX;Class X;EN\nY;Class Y;EN\n",
 }
 
 
@@ -77,6 +85,24 @@ def test_read_rows_handles_utf8_bom_and_finnish_characters(tmp_path: Path) -> No
     assert read_rows(csv_path) == [{"FOODID": "1", "FOODNAME": "Hedelmä"}]
 
 
+def test_classification_analysis_reports_counts_and_unresolved_codes(
+    tmp_path: Path,
+) -> None:
+    _write_fineli_files(tmp_path)
+    files = dict(FILES)
+    files["food.csv"] = (
+        "FOODID;FOODNAME;FOODTYPE;PROCESS;EDPORT;IGCLASS;IGCLASSP;FUCLASS;FUCLASSP\n"
+        "1;SOKERI;FOOD;IND;100;UNKNOWN;X;X;X\n"
+    )
+    _write_fineli_files(tmp_path, files)
+
+    analysis = analyze_classifications(tmp_path)
+
+    assert analysis["FOODTYPE"]["distinct_count"] == 1
+    assert analysis["PROCESS"]["descriptions"] == {"IND": "Industrial"}
+    assert analysis["IGCLASS"]["unresolved_codes"] == ["UNKNOWN"]
+
+
 def test_import_converts_units_and_keeps_missing_as_null(local_client) -> None:
     food = local_client.get("/api/ingredients/1").json()
     values = food["nutrients_per_100g"]
@@ -86,6 +112,9 @@ def test_import_converts_units_and_keeps_missing_as_null(local_client) -> None:
     assert values["fat_g"] == 0.0          # a real zero stays zero
     assert values["protein_g"] is None     # blank in the file stays missing
     assert food["name"] == "Sugar"
+    assert food["food_type"] == "FOOD"
+    assert food["process"] == "IND"
+    assert food["ingredient_class"] == "X"
     assert food["source"]["provider"] == "Fineli"
     assert food["source"]["source_type"] == "dataset"
 
@@ -96,10 +125,44 @@ def test_import_converts_units_and_keeps_missing_as_null(local_client) -> None:
     fiber = local_client.get("/api/ingredients/2").json()
     assert fiber["nutrients_per_100g"]["fiber_g"] == 1.5  # FIBT fallback
 
+    dish = local_client.get("/api/ingredients/3").json()
+    assert dish["food_type"] == "DISH"
+    assert dish["process"] == "BOIL"
+    assert dish["ingredient_class"] == "Y"
+
+    missing = local_client.get("/api/ingredients/4").json()
+    assert missing["food_type"] == "FOOD"
+    assert missing["process"] == "IND"
+    assert missing["ingredient_class"] is None
+
+
+def test_import_preserves_unknown_classification_codes(
+    client, tmp_path: Path
+) -> None:
+    files = dict(FILES)
+    files["food.csv"] = files["food.csv"].replace(
+        "4;ÖLJY;FOOD;IND;100;;;X;X",
+        "4;ÖLJY;UNKNOWN_TYPE;UNKNOWN_PROCESS;100;UNKNOWN_CLASS;X;X;X",
+    )
+    _write_fineli_files(tmp_path, files)
+
+    import_fineli(tmp_path, engine=main.engine)
+
+    food = client.get("/api/ingredients/4").json()
+    assert food["food_type"] == "UNKNOWN_TYPE"
+    assert food["process"] == "UNKNOWN_PROCESS"
+    assert food["ingredient_class"] == "UNKNOWN_CLASS"
+
 
 def test_search_matches_english_and_finnish_and_ranks_exact_first(local_client) -> None:
-    names = [f["name"] for f in local_client.get("/api/ingredients/search", params={"q": "sugar"}).json()]
+    search_results = local_client.get(
+        "/api/ingredients/search", params={"q": "sugar"}
+    ).json()
+    names = [f["name"] for f in search_results]
     assert names == ["Sugar", "Fruit sugar"]
+    assert search_results[0]["food_type"] == "FOOD"
+    assert search_results[0]["process"] == "IND"
+    assert search_results[0]["ingredient_class"] == "X"
     assert [f["id"] for f in local_client.get("/api/ingredients/search", params={"q": "hedelmä"}).json()] == ["2"]
     assert local_client.get("/api/ingredients/search", params={"q": "100%"}).json() == []
 
@@ -186,6 +249,14 @@ def test_recalculate_rejects_unknown_fineli_id(local_client) -> None:
 
 def test_import_reports_missing_files(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="food.csv"):
+        import_fineli(tmp_path, engine=main.engine)
+
+
+def test_import_reports_missing_classification_file(tmp_path: Path) -> None:
+    _write_fineli_files(tmp_path)
+    (tmp_path / "igclass_EN.csv").unlink()
+
+    with pytest.raises(FileNotFoundError, match="igclass_EN.csv"):
         import_fineli(tmp_path, engine=main.engine)
 
 

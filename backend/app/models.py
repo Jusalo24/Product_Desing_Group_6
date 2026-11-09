@@ -108,6 +108,9 @@ class FineliFood(Base):
     id: Mapped[str] = mapped_column(String(20), primary_key=True)  # Fineli FOODID
     name_fi: Mapped[str] = mapped_column(String(300), index=True)
     name_en: Mapped[str | None] = mapped_column(String(300), nullable=True, index=True)
+    food_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    process: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    ingredient_class: Mapped[str | None] = mapped_column(String(100), nullable=True)
     energy_kj: Mapped[float | None] = mapped_column(Float, nullable=True)
     energy_kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
     protein_g: Mapped[float | None] = mapped_column(Float, nullable=True)

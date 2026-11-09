@@ -38,6 +38,9 @@ def _map_food(food: FineliFood) -> dict[str, Any]:
     return {
         "id": food.id,
         "name": name,
+        "food_type": food.food_type,
+        "process": food.process,
+        "ingredient_class": food.ingredient_class,
         "nutrients_per_100g": {
             "energy_kcal": food.energy_kcal,
             "energy_kj": food.energy_kj,

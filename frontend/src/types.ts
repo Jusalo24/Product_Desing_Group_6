@@ -6,6 +6,20 @@ export interface Ingredient {
   amount: string;
 }
 
+export interface FineliFood {
+  id: string;
+  name: string;
+  nutrients_per_100g: Record<string, number | null>;
+  source: {
+    provider: string;
+    source_type: string;
+    external_id: string;
+    source_url: string | null;
+    retrieved_at: string;
+    attribution_text: string;
+  };
+}
+
 export interface Recipe {
   id: number;
   title: string;
@@ -23,5 +37,5 @@ export interface RecipeCreate {
   instructions: string;
   prep_minutes: number | null;
   servings: number | null;
-  ingredients: { name: string; amount: string }[];
+  ingredients: { name: string; amount: string; fineli_id: string }[];
 }

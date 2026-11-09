@@ -71,6 +71,9 @@ class NutritionResponse(BaseModel):
 class FineliFood(BaseModel):
     id: str
     name: str
+    food_type: str | None = None
+    process: str | None = None
+    ingredient_class: str | None = None
     nutrients_per_100g: NutritionValues
     source: SourceInfo
 

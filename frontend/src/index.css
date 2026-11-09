@@ -142,6 +142,41 @@ a {
   flex: 1;
 }
 
+.row {
+  position: relative;
+}
+
+.ingredient-suggestions {
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 12rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 0 0 6px 6px;
+}
+
+.ingredient-suggestions button {
+  width: 100%;
+  padding: 0.5rem;
+  border: 0;
+  background: white;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ingredient-suggestions button:hover,
+.ingredient-suggestions button:focus {
+  background: #f3eee8;
+}
+
 .instructions {
   white-space: pre-wrap;
 }

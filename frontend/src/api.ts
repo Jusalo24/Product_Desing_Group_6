@@ -1,4 +1,4 @@
-import type { Recipe, RecipeCreate } from "./types";
+import type { FineliFood, Recipe, RecipeCreate } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -12,6 +12,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  searchIngredients: (query: string) =>
+    request<FineliFood[]>(`/ingredients/search?q=${encodeURIComponent(query)}`),
   listRecipes: () => request<Recipe[]>("/recipes"),
   getRecipe: (id: number) => request<Recipe>(`/recipes/${id}`),
   createRecipe: (data: RecipeCreate) =>

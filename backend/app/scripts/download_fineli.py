@@ -27,6 +27,9 @@ REQUIRED_FILES = (
     "component_value.csv",
     "foodaddunit.csv",
     "foodunit_EN.csv",
+    "foodtype_EN.csv",
+    "process_EN.csv",
+    "igclass_EN.csv",
 )
 
 

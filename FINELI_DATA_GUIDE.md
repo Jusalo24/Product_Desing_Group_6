@@ -113,8 +113,7 @@ Key points from `descript.txt` ✅:
 The archive contains additional files that may be useful as the project grows, but
 they are **not implemented or imported in the current project state**:
 
-- `foodtype_*`, `process_*`, `igclass_*` and `fuclass_*` could enrich food labels
-  and improve ingredient search and ranking.
+- `fuclass_*` could enrich food labels and improve ingredient search and ranking.
 - `specdiet.csv` and `specdiet_*` could support special-diet labels or filters;
   these classifications should not be treated as allergen-safety guarantees.
 - `foodname_SV.csv` and `foodname_TX.csv` could add Swedish and scientific-name
@@ -125,8 +124,9 @@ they are **not implemented or imported in the current project state**:
   could support future composite-food explanations or nutrient-value provenance,
   but require additional interpretation and validation.
 
-The current downloader stages only the seven CSVs required by the importer. These
-other archive files are not part of the current application workflow.
+The downloader stages the ten CSVs required by the importer. The
+`foodtype_EN.csv`, `process_EN.csv`, and `igclass_EN.csv` lookup files are used
+to analyze the classification codes; the importer stores the original codes.
 
 ---
 
@@ -197,11 +197,11 @@ python -m app.scripts.download_fineli
 First download the Fineli Rel20 nutrient-data ZIP in your browser and move it to the
 repository root, keeping the filename `Fineli_Rel20__74_ravintotekij__.zip`. The
 script does not download the archive; it looks for that exact file at the project
-root, then stages the seven required CSVs in `backend/data/fineli/`. The archive and
+root, then stages the ten required CSVs in `backend/data/fineli/`. The archive and
 the `backend/data/` folder are gitignored. To use another staging directory, pass
 `--output-dir`.
 
-The script validates that the archive contains all seven required CSVs before
+The script validates that the archive contains all ten required CSVs before
 staging them.
 
 **Run the importer** (from `backend/`, with the database running):
@@ -212,24 +212,45 @@ staging them.
 .\.venv\Scripts\python.exe -m app.scripts.import_fineli --data-dir "C:\path\to\fineli"
 ```
 
-**Input:** these seven files in `backend/data/fineli/` (gitignored, never committed):
+**Update an existing database schema** (from `backend/`):
 
-`food.csv`, `foodname_EN.csv`, `component.csv`, `compunit_EN.csv`, `component_value.csv`, `foodaddunit.csv`, `foodunit_EN.csv`
+```powershell
+.\.venv\Scripts\python.exe -m app.scripts.migrate_db
+```
+
+The migration is additive and idempotent. It creates missing tables and adds only
+the nullable `food_type`, `process`, and `ingredient_class` columns to
+`fineli_foods`; it does not delete or truncate data. Application startup performs
+the same check automatically.
+
+**Input:** these ten files in `backend/data/fineli/` (gitignored, never committed):
+
+`food.csv`, `foodname_EN.csv`, `component.csv`, `compunit_EN.csv`,
+`component_value.csv`, `foodaddunit.csv`, `foodunit_EN.csv`,
+`foodtype_EN.csv`, `process_EN.csv`, `igclass_EN.csv`
 
 **Steps:**
 
-1. Check that all seven files exist, otherwise stop and name the missing ones.
+1. Check that all ten files exist, otherwise stop and name the missing ones.
 2. Read each nutrient's unit from `component.csv` and `compunit_EN.csv`. Stop on unknown units.
 3. Read `component_value.csv`, retain only the component codes used by the app (including the `FIBT` fibre fallback), parse decimal commas, convert units, and treat blank or non-numeric values as missing. The current implementation reads the CSV into memory rather than streaming it.
-4. Build one record per food: Finnish name (from `food.csv`), English name (from `foodname_EN.csv`), nutrients, and derived kcal.
-5. Build unit conversions from `foodaddunit.csv`, with readable names from `foodunit_EN.csv`. Rows for unknown foods or with unreadable mass are skipped.
-6. Empty both Fineli tables and insert the imported records in a database transaction. **Re-running is safe**; each successful run replaces the previous imported dataset.
+4. Read `FOODTYPE`, `PROCESS`, and `IGCLASS` directly from `food.csv`. Blank values become NULL; unknown codes are preserved.
+5. Build one record per food: Finnish name (from `food.csv`), English name (from `foodname_EN.csv`), classification codes, nutrients, and derived kcal.
+6. Build unit conversions from `foodaddunit.csv`, with readable names from `foodunit_EN.csv`. Rows for unknown foods or with unreadable mass are skipped.
+7. Empty both Fineli tables and insert the imported records in a database transaction. **Re-running is safe**; each successful run replaces the previous imported dataset.
+
+The importer prints a classification analysis after a successful import. For
+each field it reports the number of distinct codes, missing values, English
+descriptions found by `THSCODE` plus `LANG=EN`, and codes without a description.
+The repository does not contain the downloadable Fineli archive, so the exact
+Rel20 counts and descriptions must be generated from the staged release; no
+unverified values are listed here as confirmed facts.
 
 **Output tables:**
 
 | Table | Columns | Rows (roughly) |
 | --- | --- | --- |
-| `fineli_foods` | `id` (FOODID, text), `name_fi`, `name_en`, `energy_kj`, `energy_kcal`, `protein_g`, `carbohydrates_g`, `fat_g`, `fiber_g`, `salt_g`, `sugars_g`, `saturated_fat_g` (nullable floats) | a few thousand ⚠️ |
+| `fineli_foods` | `id` (FOODID, text), `name_fi`, `name_en`, `food_type`, `process`, `ingredient_class`, nutrient columns (nullable floats) | a few thousand ⚠️ |
 | `fineli_food_units` | `food_id`, `unit_code`, `unit_name`, `grams` | tens of thousands ⚠️ |
 
 **How the backend reads it:**
@@ -237,6 +258,8 @@ staging them.
 - `LocalFineliClient` (`app/integrations/fineli/local_client.py`) has the same `search_foods` and `get_food` methods as the old HTTP client.
 - `get_fineli_client(db)` (`factory.py`) always returns the local dataset client. Ingredient search and nutrition recalculation do not call Fineli's HTTP API.
 - Search is a case-insensitive "contains" match on English and Finnish names. Results are ranked exact match first, then prefix match, then shorter names first, and limited to 20.
+- Fineli search and single-food responses also include nullable `food_type`,
+  `process`, and `ingredient_class` code fields.
 - An unknown food id gives **404** from `/api/ingredients/{id}` and **422** during nutrition recalculation.
 
 When Fineli publishes a new release, update the `FINELI_RELEASE` constant in `local_client.py` so the attribution text stays correct.
@@ -263,7 +286,10 @@ Suggested layers, from cheapest to most powerful:
 
 ⚠️ `food.csv` has `FOODTYPE` and `PROCESS` columns (the sample rows show `FOOD` and `IND`). Fineli also contains composite foods and dishes built from recipe rows (`contribfood.csv`). When a user types "potato", they almost certainly mean the raw ingredient, not a prepared dish.
 
-Before filtering, **inspect the distinct values** of `FOODTYPE`, `PROCESS`, `IGCLASS` and read their meanings in `foodtype_EN.csv`, `process_EN.csv` and `igclass_EN.csv`. Then:
+The importer now preserves the source codes and prints the distinct values and
+their lookup descriptions. Before filtering, **inspect those results** for the
+exact release and read their meanings in `foodtype_EN.csv`, `process_EN.csv`
+and `igclass_EN.csv`. Then:
 
 - Import `FOODTYPE`, `PROCESS` and `IGCLASS` into `fineli_foods`.
 - Rank basic foods above dishes in search, or filter dishes out of ingredient search.
@@ -432,7 +458,7 @@ These are the unverified items collected from this document. Settle them once, t
 
 1. Does the current release define non-numeric `BESTLOC` markers beyond blanks? (section 8.1)
 2. Which units do `NACL` and the other nutrients use in `compunit_EN.csv`? The importer reads them, but note the results.
-3. What do the values of `FOODTYPE`, `PROCESS` and `IGCLASS` mean, and how do we separate basic foods from dishes? (section 6.2)
+3. Which exact `FOODTYPE`, `PROCESS` and `IGCLASS` values occur in the staged release, and how do we separate basic foods from dishes? Run the importer analysis; no filter is implemented yet. (section 6.2)
 4. What does each household unit code mean (`PORTM`, `PORTL`, `KPL_S`, ...)? Read `foodunit_EN.csv`. (section 6.3)
 5. How should `EDPORT` be used, if at all? (section 6.5)
 6. How many foods lack English names or any of the four required nutrients? (section 8.3)

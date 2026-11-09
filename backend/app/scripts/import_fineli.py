@@ -12,11 +12,16 @@ from __future__ import annotations
 import argparse
 import csv
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import Engine, delete, insert
 from sqlalchemy.orm import Session
 
-from app.database import Base, engine as default_engine
+from app.database import (
+    Base,
+    engine as default_engine,
+    ensure_fineli_classification_columns,
+)
 from app.models import FineliFood, FineliFoodUnit
 from app.scripts.progress import ProgressBar
 
@@ -29,6 +34,9 @@ REQUIRED_FILES = (
     "component_value.csv",
     "foodaddunit.csv",
     "foodunit_EN.csv",
+    "foodtype_EN.csv",
+    "process_EN.csv",
+    "igclass_EN.csv",
 )
 
 # column -> (Fineli component codes in order of preference, target unit)
@@ -80,6 +88,55 @@ def parse_number(value: str | None) -> float | None:
 def nice_name(value: str | None) -> str | None:
     value = (value or "").strip()
     return value.capitalize() if value else None
+
+
+def _classification_code(row: dict[str, str], column: str) -> str | None:
+    value = row.get(column, "").strip()
+    return value or None
+
+
+CLASSIFICATIONS = {
+    "FOODTYPE": "foodtype_EN.csv",
+    "PROCESS": "process_EN.csv",
+    "IGCLASS": "igclass_EN.csv",
+}
+
+
+def analyze_classifications(data_dir: Path) -> dict[str, Any]:
+    """Summarize classification codes and their English descriptions."""
+    food_rows = read_rows(data_dir / "food.csv")
+    result: dict[str, Any] = {}
+    for column, filename in CLASSIFICATIONS.items():
+        descriptions = {
+            row["THSCODE"].strip(): row["DESCRIPT"].strip()
+            for row in read_rows(data_dir / filename)
+            if row.get("LANG", "").strip().upper() == "EN"
+            and row.get("THSCODE", "").strip()
+        }
+        row_codes = [_classification_code(row, column) for row in food_rows]
+        present_codes = {code for code in row_codes if code is not None}
+        result[column] = {
+            "distinct_count": len(present_codes),
+            "missing_count": sum(code is None for code in row_codes),
+            "unresolved_codes": sorted(present_codes - descriptions.keys()),
+            "descriptions": {
+                code: descriptions[code]
+                for code in sorted(present_codes & descriptions.keys())
+            },
+        }
+    return result
+
+
+def print_classification_analysis(analysis: dict[str, Any]) -> None:
+    """Print the classification summary for a data import operator."""
+    for column, values in analysis.items():
+        print(
+            f"{column}: {values['distinct_count']} distinct, "
+            f"{values['missing_count']} missing"
+        )
+        print(f"  descriptions: {values['descriptions']}")
+        if values["unresolved_codes"]:
+            print(f"  unresolved codes (preserved): {values['unresolved_codes']}")
 
 
 def _component_units(data_dir: Path) -> dict[str, tuple[str, float]]:
@@ -149,6 +206,9 @@ def import_fineli(
                 "id": food_id,
                 "name_fi": nice_name(row["FOODNAME"]) or food_id,
                 "name_en": names_en.get(food_id),
+                "food_type": _classification_code(row, "FOODTYPE"),
+                "process": _classification_code(row, "PROCESS"),
+                "ingredient_class": _classification_code(row, "IGCLASS"),
             }
             for column, (codes, _) in NUTRIENTS.items():
                 record[column] = next((found[c] for c in codes if c in found), None)
@@ -174,6 +234,7 @@ def import_fineli(
 
     with ProgressBar("Preparing Fineli database tables", 1, show_progress) as progress:
         Base.metadata.create_all(bind=engine, tables=[FineliFood.__table__, FineliFoodUnit.__table__])
+        ensure_fineli_classification_columns(engine)
         progress.advance()
     with Session(engine) as db:
         with ProgressBar("Replacing existing Fineli data", 2, show_progress) as progress:
@@ -199,6 +260,7 @@ def main() -> None:
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DIR)
     args = parser.parse_args()
     stats = import_fineli(args.data_dir, show_progress=True)
+    print_classification_analysis(analyze_classifications(args.data_dir))
     print(f"Imported {stats['foods']} foods ({stats['with_energy']} with energy values) "
           f"and {stats['food_units']} unit conversions from {args.data_dir}")
 
