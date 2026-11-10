@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import MealSearchPage from "./MealSearchPage";
 
 const meal = {
@@ -41,6 +41,7 @@ describe("MealSearchPage", () => {
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
+    fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockResolvedValue(jsonResponse([meal]));
   });
@@ -92,6 +93,31 @@ describe("MealSearchPage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Reseptejä ei löytynyt.",
+    );
+  });
+
+  it("saves the selected meal and navigates to its recipe", async () => {
+    const savedRecipe = { id: 17 };
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse([meal]))
+      .mockResolvedValueOnce(jsonResponse(savedRecipe, 201));
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route path="/" element={<MealSearchPage />} />
+          <Route path="/recipes/:id" element={<p>Saved recipe page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Hae" }));
+    await user.click(await screen.findByRole("button", { name: "Näytä resepti" }));
+    await user.click(screen.getByRole("button", { name: "Save recipe for nutrition" }));
+
+    expect(await screen.findByText("Saved recipe page")).toBeVisible();
+    expect(String(fetchMock.mock.calls[1][0])).toBe(
+      "/api/external-recipes/id/52771/import",
     );
   });
 

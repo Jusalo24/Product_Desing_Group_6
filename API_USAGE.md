@@ -1,14 +1,14 @@
 # API Usage Guide
 
-How we call external APIs in this project, with TypeScript examples for **TheMealDB** (recipes) and **Fineli** (Finnish food composition data).
+Reference guide for integrating with **TheMealDB** (recipes) and **Fineli** (Finnish food composition data), with TypeScript examples.
 
 Read this before adding or changing any code that talks to a third-party API. Reviewers will check PRs against this document and `REVIEW_GUIDELINES.md`.
 
-> **Validation status (last checked 2026-10-29)**
-> - **Code:** every TypeScript file in this document was extracted into a real project, type-checked in `strict` mode, and exercised by the tests in [section 10](#10-testing): 59 tests pass on both Zod 3.25 and Zod 4.6. The tests were also mutation-checked (re-introducing the bugs below makes them fail). All HTTP is mocked, so **no live calls to either API were made**.
-> - **TheMealDB:** endpoints, access tiers, key placement, image sizes and attribution come from the official API guide and agent guide. A few response-shape details are only partly confirmed; they are listed in [Appendix A](#appendix-a-validation-log).
-> - **Fineli:** endpoints and terms are confirmed from Fineli's own pages. **Response field names, units, nutrient keys and "not found" behavior have not been verified** (the Swagger spec was not reachable). Every dependency on them is marked `VERIFY`. Fix those first (see [7.2](#72-fineli-verify-before-use)).
-> - **Fixed during validation:** pre-aborted requests were still sent; one user cancelling a request could cancel a shared in-flight request for other users; one unexpected extra field in a TheMealDB record rejected the whole response; category/area filters wrongly had spaces replaced with underscores; network failures were not wrapped (mapped to HTTP 500 instead of 502); and the original key-leak test used a faked HTTP layer, so it never exercised the real `HttpError` redaction path (the new tests do).
+> **Scope and validation (checked 2026-11-09)**
+> - This is a reference/design guide. The TypeScript, Zod, Node, and Express code samples and `src/lib/...` layout are illustrative examples, not the implementation in this repository and not verified project code. The application uses a Python/FastAPI backend and a React frontend; consult the corresponding files in `backend/app/` and `frontend/src/` for actual behavior.
+> - The repository's current checks passed: 75 backend tests, 14 frontend tests, and the frontend TypeScript/production build. These checks do **not** extract, type-check, or test the examples in this document.
+> - The actual Fineli package was staged and imported in an isolated database, and the local food-search, match, conversion, and nutrition flow was smoke-tested against that data. No live TheMealDB or Fineli API requests were made. Fineli's official terms could not be fetched in this environment; see [7.2](#72-fineli-verify-before-use) and [FINELI_DATA_GUIDE.md](FINELI_DATA_GUIDE.md).
+> - Provider contracts, terms, pricing, and rate limits can change. Treat the provider reference and verification log below as research notes, not a substitute for checking current official sources before release.
 
 ---
 
@@ -78,7 +78,7 @@ tests/
   fixtures/fineli/            # real saved responses (see 7.2)
 ```
 
-Dependencies used in examples: `zod` (tested on 3.25 and 4.6), Node 18+ (global `fetch`; `AbortSignal.throwIfAborted` needs 17.3+), `express` for the route example, `vitest` for tests.
+Dependencies used by the illustrative examples: `zod`, Node 18+ (global `fetch`; `AbortSignal.throwIfAborted` needs 17.3+), `express` for the route example, and `vitest` for tests. These are not the application's backend dependencies.
 
 ---
 
@@ -400,6 +400,23 @@ Docs: `https://www.themealdb.com/documentation` · Agent guide: `https://themeal
 | Public / production app | Not intended | Required |
 
 We use **V1** for the endpoints below. V2-only features are noted where relevant.
+TheMealDB's current terms reserve the free tier for development; publishing an
+app in an app store requires a paid subscription. Paid access remains subject
+to rate limits, and permission to use TheMealDB does not establish rights to
+third-party recipe text or images. Recheck the official terms, subscription,
+and content rights before a public launch; the development key `1` is not a
+production credential. The official terms page was retrieved during the
+2026-11-09 research pass; confirm the current lifetime subscription and exact
+rate limits with the provider before launch because those terms can change.
+**Release decision:** local development is supported; public/app-store release
+is blocked until a paid production key/subscription is configured and
+third-party content rights and current rate limits are confirmed.
+
+**Implementation caveat:** this release decision is documentation, not an
+enforced application guard. The current backend configuration defaults the
+TheMealDB key to `1` and does not reject that key based on environment. The
+`loadConfig` production check in section 3 is an example only; do not assume it
+protects this application.
 
 ### 6.2 Endpoint reference (V1)
 
@@ -439,6 +456,34 @@ Configure `THEMEALDB_API_KEY` in `backend/.env` (the development default is
 `1`). `THEMEALDB_API_BASE_URL` should point to the API version root, such as
 `https://www.themealdb.com/api/json/v1`; existing values ending in `/v1/1`
 remain supported.
+
+To save a result for nutrition analysis, the browser calls
+`POST /api/external-recipes/id/{meal_id}/import`. The backend looks up the full
+meal, saves a local recipe and its TheMealDB source ID/URLs/attribution, and
+preserves each non-empty ingredient and the measure exactly as supplied.
+Importing the same provider ID again returns the existing recipe rather than
+creating a duplicate.
+
+On the saved recipe, `GET /api/ingredients/suggestions?q={ingredient}` returns
+up to five ranked local Fineli candidates. Suggestions are not persisted until
+the user explicitly confirms one with
+`PUT /api/recipes/{recipe_id}/ingredients/{ingredient_id}/nutrition-source`
+and a `fineli_id`. The original ingredient label and measure remain unchanged.
+If the measure cannot be converted using a supported metric expression or that
+food's Fineli household-unit values, its quantity remains unknown.
+
+`POST /api/recipes/{recipe_id}/nutrition/recalculate` creates a calculation
+snapshot and returns a partial estimate instead of failing the whole recipe
+for an unmatched ingredient, unsupported quantity, missing Fineli food, or
+missing nutrient data. `GET /api/recipes/{recipe_id}/nutrition` returns the
+saved estimate. In addition to the existing normalized `values`, the response
+includes nullable `per_serving_values`, `detailed_totals` (Fineli component
+code, label, dataset unit/group and per-serving value), `coverage`
+(`included_ingredients`, `total_ingredients`, and `ratio`), and
+`ingredient_results` with included contributions or a skipped reason. A
+missing nutrient stays `null`/absent, not zero. Coverage counts ingredients
+that contributed at least one known nutrient; no minimum coverage threshold is
+applied.
 
 ### 6.3 Schemas (raw API shapes)
 
@@ -812,7 +857,7 @@ export class MealDbClient {
 
 Design notes:
 - **Cancellation:** cached methods pass the caller's `signal` to the cache (so only that caller stops waiting). Uncached calls (`random`, `categoryDetails`) pass it straight to the request.
-- **Redaction:** the real URL and a log-safe URL are built together, so the key is never found by string search. The test suite checks this, including with key `1`.
+- **Redaction (example design):** the example builds the real URL and a log-safe URL together. The illustrative test in section 10 is intended to check this, including with key `1`; it has not been run as part of this repository's test suites.
 - **Filter values:** only the ingredient filter replaces spaces with underscores (the documented form, `chicken_breast`). For category and area, use values returned by `listCategories()` and `listAreas()`; the client sends them as given, URL-encoded.
 - **Base URL:** trailing slashes are stripped.
 
@@ -890,6 +935,17 @@ controller.abort(); // user typed again: p rejects with AbortError
 
 Fineli is the Finnish national food composition database maintained by THL (the Finnish Institute for Health and Welfare). Open data page: `https://fineli.fi/fineli/en/avoin-data` · Swagger spec: `https://fineli.fi/fineli/v2/api-docs`
 
+### Current application integration
+
+The application imports Fineli release 20.0 from the downloadable CSV package
+and uses the local database at runtime; it does not call the live Fineli API.
+`GET /api/ingredients/search?q=...` and `GET /api/ingredients/{food_id}`
+return the existing normalized nutrient fields plus detailed component
+metadata/values and food-specific unit weights. `GET
+/api/ingredients/suggestions?q=...` returns up to five ranked candidates; a
+match is persisted only after explicit user confirmation. See
+`FINELI_DATA_GUIDE.md` for staging and importing the package.
+
 ### 7.1 What is documented
 
 | Purpose | Request |
@@ -905,6 +961,18 @@ Fineli is the Finnish national food composition database maintained by THL (the 
 - A bulk **CSV open data package** is also available (about 4,200 foods; food names in Finnish, Swedish and English; household measures and portion sizes). For high-traffic or latency-sensitive features, prefer loading this into our own datastore over calling the live API.
 
 ### 7.2 Fineli: verify before use
+
+The application does not depend on these live endpoints at runtime; it uses
+the downloaded package. The official open-data and API pages returned HTTP 403
+during the 2026-11-09 research and verification attempts. The downloaded
+release's `descript.txt` states CC BY 4.0, but public redistribution remains a
+release gate until current official access and license conditions are
+independently confirmed.
+**Release decision:** the downloaded Rel20 package declares CC BY 4.0, but the
+current official Fineli terms could not be fetched in this environment. Public
+redistribution of Fineli-derived data remains blocked until THL's current terms
+are confirmed and the required attribution/redistribution conditions are
+recorded.
 
 Do this once, then delete the `VERIFY` comments you resolved:
 
@@ -1169,72 +1237,26 @@ TheMealDB ingredients are free-text English strings with free-text measures ("1 
 ### 8.1 Rules
 
 1. **Nutrition from recipes is an estimate.** Label it "approximate" and show how much of the recipe it covers.
-2. **Only count what we can convert.** If a measure cannot be turned into grams with confidence, exclude that ingredient and record it as unmatched. Do not guess "1 cup of flour = X g".
-3. **Report coverage.** Show "based on 5 of 9 ingredients" or similar so users are not misled.
-4. **Matching ingredient names to Fineli IDs is a curated step.** Maintain an explicit mapping file (`ingredient-map.json`: `{"chicken breast": 12345}`) reviewed by the team. Do not auto-pick the first search hit.
-5. **Allergens and diets are out of scope for inference.** Neither source certifies them (see 8.3).
+2. **Only count supported quantities.** Grams and kilograms are exact; supported household expressions use that selected Fineli food's imported gram values and are marked estimated. Unsupported or ambiguous measures remain unknown. Do not use generic density assumptions.
+3. **Report coverage and skipped reasons.** Coverage is included ingredient count divided by all recipe ingredients. Each skipped ingredient reports a reason, such as no confirmed match, unknown quantity, unavailable Fineli ID, or no usable nutrients.
+4. **Require explicit match confirmation.** Ranked suggestions and aliases are candidates only. The user confirms a Fineli ID; do not silently select the first result.
+5. **Keep nutrients and units source-grounded.** Detailed Fineli values are per 100 g; estimates multiply each known value by converted grams / 100. A missing value stays unknown and is not included as zero.
+6. **No coverage cutoff.** Show partial totals with the coverage prominently. When no ingredient contributes, explain that an estimate is unavailable.
+7. **Allergens and diets are out of scope for inference.** Neither source certifies them (see 8.3).
 
-### 8.2 Example: coverage-aware estimate
+### 8.2 Current estimate response
 
-```ts
-// src/lib/nutrition/estimate.ts
-import type { Recipe } from "@/lib/api/themealdb/types";
-import type { Food } from "@/lib/api/fineli/types";
+The FastAPI response schema is `NutritionResponse` in
+`backend/app/schemas.py`. Its `values` retains the established nine normalized
+fields; `detailed_totals` adds imported Fineli nutrient codes, display labels,
+units, component groups, and per-serving totals. `ingredient_results` is the
+calculation snapshot used to explain each contribution or omission. `status`
+is `completed`, `partial`, or `unavailable`.
 
-/** Only parses plain gram/kilogram measures. Everything else is unknown. */
-export function parseGrams(measure: string | undefined): number | undefined {
-  if (!measure) return undefined;
-  const m = measure.trim().toLowerCase().match(/^(\d+(?:[.,]\d+)?)\s*(g|gr|grams?|kg|kilograms?)$/);
-  if (!m) return undefined;
-  const value = Number(m[1].replace(",", "."));
-  if (!Number.isFinite(value)) return undefined;
-  return m[2].startsWith("k") ? value * 1000 : value;
-}
-
-export interface NutrientEstimate {
-  /** Total across matched ingredients. Undefined if nothing could be counted. */
-  total?: number;
-  /** Ingredients that contributed to the total. */
-  counted: string[];
-  /** Ingredients we could not include (no match, no gram weight, or nutrient missing). */
-  skipped: { name: string; reason: "no-match" | "no-grams" | "no-nutrient" }[];
-  /** counted / total ingredients, 0..1 */
-  coverage: number;
-}
-
-export function estimateNutrient(
-  recipe: Recipe,
-  nutrientKey: string, // VERIFY against Fineli nutrient keys
-  foodFor: (ingredientName: string) => Food | undefined, // from the curated map
-): NutrientEstimate {
-  const counted: string[] = [];
-  const skipped: NutrientEstimate["skipped"] = [];
-  let total = 0;
-
-  for (const ing of recipe.ingredients) {
-    const food = foodFor(ing.name);
-    if (!food) { skipped.push({ name: ing.name, reason: "no-match" }); continue; }
-
-    const grams = parseGrams(ing.measure);
-    if (grams === undefined) { skipped.push({ name: ing.name, reason: "no-grams" }); continue; }
-
-    const per100 = food.nutrients[nutrientKey]?.amount;
-    if (per100 === undefined) { skipped.push({ name: ing.name, reason: "no-nutrient" }); continue; }
-
-    total += (per100 * grams) / 100; // values are per 100 g (VERIFY)
-    counted.push(ing.name);
-  }
-
-  return {
-    total: counted.length ? total : undefined,
-    counted,
-    skipped,
-    coverage: recipe.ingredients.length ? counted.length / recipe.ingredients.length : 0,
-  };
-}
-```
-
-UI guidance: if `coverage < 0.5`, do not show a headline number. Show "not enough data to estimate".
+The application displays all available partial totals, coverage, per-ingredient
+contributions, attribution, and skipped reasons. It does not impose a
+percentage threshold. Servings are used only when a recipe serving count is
+known; otherwise per-serving values are `null`.
 
 ### 8.3 Allergens and dietary claims
 
@@ -1342,9 +1364,13 @@ type Remote<T> =
 
 ## 10. Testing
 
-Do not call real third-party APIs in tests. The clients accept an injected `fetchJson`, and `fetchJson` itself is tested by stubbing the global `fetch`.
+Do not call real third-party APIs in tests. In the example design, clients accept an injected `fetchJson`, and the proposed `fetchJson` tests stub the global `fetch`.
 
-The suite below is the one that was run to validate this document (59 tests, passing on Zod 3.25 and 4.6, type-checked with `strict`). To run it, add this `vitest.config.ts` and a matching `paths` entry in `tsconfig.json`:
+The listings below are illustrative test examples for the TypeScript design in
+this guide. They are not a runnable, verified suite in this repository, and no
+test count or Zod-version compatibility is claimed for them. To use them,
+implement the corresponding example modules in a separate TypeScript project
+and configure the test runner there:
 
 ```ts
 // vitest.config.ts
@@ -1865,14 +1891,14 @@ describe("loadConfig", () => {
 });
 ```
 
-**What these tests protect against** (each was verified by re-introducing the bug and watching a test fail):
+**Intended coverage if these example tests are implemented and run:**
 - sending a request after the caller already cancelled;
 - one caller's cancellation breaking other callers sharing a request;
 - the API key appearing in error messages or URLs, including when the key is `1`;
 - one unexpected extra field rejecting a whole recipe;
 - missing nutrients or unparseable measures being counted as zero.
 
-**Still not covered, add when you build these features:** real fixtures for Fineli; a recorded real TheMealDB response for each endpoint (save the live JSON once, then test against the file); component tests for loading, empty and error states; an end-to-end test through the real Express app.
+**Example-suite coverage note:** the test listings in this section describe tests for the illustrative TypeScript design, not tests in this repository. They do not establish coverage of the Python API, React components, or real provider behavior. For actual project coverage, run the backend and frontend test suites; live provider behavior and legal terms still require separate verification.
 
 ---
 
@@ -1880,7 +1906,7 @@ describe("loadConfig", () => {
 
 | Mistake | Why it matters |
 |---|---|
-| `fetch` inside a React component | Bypasses validation, caching, timeouts, and key protection |
+| Calling a third-party API directly from a UI component | Bypasses the server-side boundary, validation, caching, timeouts, and key protection |
 | `as MealResponse` on `await res.json()` | Types lie when the API changes or data is partial |
 | Using `0` when a nutrient or measure is missing | Presents unknown as fact |
 | Logging full request URLs for TheMealDB | Leaks the API key (it is in the path) |
@@ -1896,11 +1922,14 @@ describe("loadConfig", () => {
 
 ---
 
-## 12. Pre-merge checklist
+## 12. Suggested pre-merge checklist
 
-For any PR that touches an external API:
+Use these as recommendations for external-API changes, adapting them to the
+project's actual stack. They are not a description of current repository
+compliance: for example, the frontend has a shared `frontend/src/api.ts`, but
+the meal-search page also makes a direct request to our own backend API.
 
-- [ ] Calls go through a client in `src/lib/api/`, not from components.
+- [ ] Third-party calls stay behind a server-side client/service boundary; UI components call our backend rather than a provider.
 - [ ] Responses are validated with Zod and mapped to domain types.
 - [ ] `null`/empty/no-data responses are handled and tested.
 - [ ] Timeout set; retries limited to safe cases; caller cancellation supported and never shared across cached callers.
@@ -1931,7 +1960,10 @@ For any PR that touches an external API:
 
 ## Appendix A: Validation log
 
-Result of checking this document's claims on 2026-10-29. "Verified" means confirmed in an official source or by running the code. "Partial" and "Unverified" items are either handled defensively in code or marked `VERIFY`.
+Provider-reference research notes last reviewed on 2026-11-09. They are not
+validation of this repository's TypeScript examples or current provider terms.
+"Verified" means the cited source or observation supported the claim at that
+time; it does not guarantee that provider behavior or terms remain unchanged.
 
 ### TheMealDB
 
@@ -1974,8 +2006,9 @@ Result of checking this document's claims on 2026-10-29. "Verified" means confir
 
 | Claim | Status | Basis |
 |---|---|---|
-| All TypeScript compiles under `strict` | Verified | `tsc --noEmit` on extracted files |
-| Works with Zod 3.25 and 4.6 | Verified | Type-check and 59 tests on both |
-| Retry, timeout, cancellation, redaction, caching, de-duplication, concurrency limit behave as documented | Verified | Tests in section 10, mutation-checked |
-| Behavior against the live APIs | **Not tested** | Test environment could not reach either API; all HTTP is mocked |
-| Express route example end to end | **Not tested** | Only the error handler is unit-tested |
+| TypeScript examples compile under `strict` | **Not verified for this repository** | The frontend build checks the application's TypeScript, not the examples in this guide |
+| Examples work with Zod 3.25 and 4.6 | **Not verified for this repository** | No Zod example suite is part of the application test run described above |
+| Retry, timeout, cancellation, redaction, caching, de-duplication, and concurrency examples behave as documented | **Not verified for this repository** | These are example design patterns; the application's tests do not exercise them as a shared TypeScript client |
+| Application behavior against live TheMealDB or Fineli APIs | **Not tested** | No live provider requests were made during this review |
+| Fineli local import and nutrition flow against the checked-out package | Verified for this review | Archive staged and imported in isolated SQLite; local search, match, quantity conversion, and calculation smoke-tested |
+| Repository backend/frontend test suites and frontend production build | Passed for this review | 75 backend tests, 14 frontend tests, and `tsc -b && vite build` on 2026-11-09 |

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app import schemas
 from app.database import get_db
 from app.integrations.fineli.factory import get_fineli_client
+from app.integrations.fineli.matching import candidate_rank, suggestion_queries
 from app.integrations.fineli.local_client import FineliFoodNotFound
 
 router = APIRouter(prefix="/ingredients", tags=["ingredients"])
@@ -17,6 +18,29 @@ def search_ingredients(
     client = get_fineli_client(db)
     try:
         return client.search_foods(query)
+    finally:
+        client.close()
+
+
+@router.get("/suggestions", response_model=list[schemas.FineliFood])
+def suggest_ingredients(
+    query: str = Query(alias="q", min_length=1, max_length=100),
+    db: Session = Depends(get_db),
+):
+    queries = suggestion_queries(query)
+    if not queries:
+        raise HTTPException(status_code=422, detail="Ingredient query cannot be blank")
+    client = get_fineli_client(db)
+    try:
+        candidates_by_id = {}
+        for search_term in queries:
+            for food in client.search_foods(search_term):
+                candidates_by_id.setdefault(food["id"], food)
+        search_term = queries[0]
+        return sorted(
+            candidates_by_id.values(),
+            key=lambda food: candidate_rank(food, search_term),
+        )[:5]
     finally:
         client.close()
 

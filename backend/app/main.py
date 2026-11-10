@@ -5,7 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import settings
-from app.database import Base, engine
+from app.database import (
+    Base,
+    engine,
+    ensure_fineli_classification_columns,
+    ensure_recipe_source_columns,
+)
 from app.routers import recipes
 from app.routers import external_recipes, ingredients, meals, nutrition
 
@@ -14,6 +19,8 @@ from app.routers import external_recipes, ingredients, meals, nutrition
 async def lifespan(_: FastAPI):
     # Create missing tables automatically for local development.
     Base.metadata.create_all(bind=engine)
+    ensure_fineli_classification_columns(engine)
+    ensure_recipe_source_columns(engine)
     yield
 
 

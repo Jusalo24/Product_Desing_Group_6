@@ -80,6 +80,17 @@ def test_stage_reports_archive_missing_required_files(tmp_path: Path) -> None:
         stage_csv_files(archive_path, tmp_path / "output")
 
 
+def test_stage_reports_missing_classification_file(tmp_path: Path) -> None:
+    archive_path = tmp_path / "incomplete-classifications.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        for filename in REQUIRED_FILES:
+            if filename != "process_EN.csv":
+                archive.writestr(filename, "data")
+
+    with pytest.raises(FileNotFoundError, match="process_EN.csv"):
+        stage_csv_files(archive_path, tmp_path / "output")
+
+
 def test_stage_rejects_duplicate_required_file_names(tmp_path: Path) -> None:
     archive_path = tmp_path / "duplicate.zip"
     with zipfile.ZipFile(archive_path, "w") as archive:
