@@ -101,3 +101,41 @@ def test_delete_removes_recipe(client: TestClient) -> None:
     assert delete_response.content == b""
     assert client.get(f"/api/recipes/{recipe_id}").status_code == 404
     assert client.get("/api/recipes").json() == []
+
+
+def test_ingredients_can_be_edited(client: TestClient) -> None:
+    """Editing ingredient amounts keeps the recipe and Fineli match intact."""
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Porridge",
+            "ingredients": [
+                {
+                    "name": "Oats",
+                    "amount": "100 g",
+                    "quantity": 100,
+                    "unit": "g",
+                    "fineli_id": "food-1",
+                }
+            ],
+        },
+    ).json()
+
+    response = client.put(
+        f"/api/recipes/{created['id']}/ingredients",
+        json={
+            "ingredients": [
+                {
+                    "name": "Oats",
+                    "amount": "0.5 kg",
+                    "quantity": 0.5,
+                    "unit": "kg",
+                    "fineli_id": "food-1",
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["ingredients"][0]["amount"] == "0.5 kg"
+    assert response.json()["ingredients"][0]["unit"] == "kg"

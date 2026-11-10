@@ -4,6 +4,9 @@ export interface Ingredient {
   id: number;
   name: string;
   amount: string;
+  quantity: number | null;
+  unit: "g" | "kg" | null;
+  fineli_id?: string | null;
 }
 
 export interface FineliFood {
@@ -37,5 +40,32 @@ export interface RecipeCreate {
   instructions: string;
   prep_minutes: number | null;
   servings: number | null;
-  ingredients: { name: string; amount: string; fineli_id: string }[];
+  ingredients: {
+    name: string;
+    amount: string;
+    quantity: number | null;
+    unit: "g" | "kg" | null;
+    fineli_id: string;
+  }[];
+}
+
+export interface RecipeIngredientsUpdate {
+  ingredients: {
+    name: string;
+    amount: string;
+    quantity: number | null;
+    unit: "g" | "kg" | null;
+    fineli_id: string | null;
+  }[];
+}
+
+export interface NutritionResponse {
+  recipe_id: number;
+  values: Record<string, number | null>;
+  source: {
+    provider: string;
+    attribution_text: string;
+  };
+  status: string;
+  calculation_run_id: number | null;
 }

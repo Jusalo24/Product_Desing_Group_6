@@ -13,6 +13,8 @@ import "../styles/RecipeFormPage.css";
 interface IngredientRow {
   name: string;
   amount: string;
+  quantity: string;
+  unit: "g" | "kg";
   fineliId: string | null;
 }
 
@@ -30,7 +32,7 @@ export default function RecipeFormPage() {
   const [prepMinutes, setPrepMinutes] = useState("");
   const [servings, setServings] = useState("");
   const [ingredients, setIngredients] = useState<IngredientRow[]>([
-    { name: "", amount: "", fineliId: null },
+    { name: "", amount: "", quantity: "", unit: "g", fineliId: null },
   ]);
   const [suggestions, setSuggestions] = useState<Record<number, FineliFood[]>>({});
   const [activeSuggestion, setActiveSuggestion] = useState<Record<number, number>>({});
@@ -173,7 +175,9 @@ export default function RecipeFormPage() {
           .filter(hasFineliId)
           .map((ingredient) => ({
             name: ingredient.name,
-            amount: ingredient.amount,
+            amount: ingredient.quantity ? `${ingredient.quantity} ${ingredient.unit}` : ingredient.amount,
+            quantity: ingredient.quantity ? Number(ingredient.quantity) : null,
+            unit: ingredient.quantity ? ingredient.unit : null,
             fineli_id: ingredient.fineliId,
           })),
       });
@@ -259,11 +263,33 @@ export default function RecipeFormPage() {
               <label className="recipe-field amount-field">
                 <span className="sr-only">Amount for ingredient {i + 1}</span>
                 <input
+                  type="number"
+                  min={0}
+                  step="any"
                   placeholder="Amount"
-                  value={row.amount}
-                  onChange={(e) => updateIngredient(i, { amount: e.target.value })}
+                  value={row.quantity}
+                  onChange={(e) =>
+                    updateIngredient(i, {
+                      quantity: e.target.value,
+                      amount: e.target.value,
+                    })
+                  }
                   aria-label={`Amount for ingredient ${i + 1}`}
                 />
+              </label>
+              <label className="recipe-field unit-field">
+                <span className="sr-only">Unit for ingredient {i + 1}</span>
+                <select
+                  className="unit-select"
+                  value={row.unit}
+                  onChange={(e) =>
+                    updateIngredient(i, { unit: e.target.value as "g" | "kg" })
+                  }
+                  aria-label={`Unit for ingredient ${i + 1}`}
+                >
+                  <option value="g">g</option>
+                  <option value="kg">kg</option>
+                </select>
               </label>
               <label className="recipe-field ingredient-field">
                 <span className="sr-only">Ingredient {i + 1}</span>
@@ -327,7 +353,10 @@ export default function RecipeFormPage() {
           type="button"
           className="button secondary add-ingredient"
           onClick={() =>
-            setIngredients((rows) => [...rows, { name: "", amount: "", fineliId: null }])
+            setIngredients((rows) => [
+              ...rows,
+              { name: "", amount: "", quantity: "", unit: "g", fineliId: null },
+            ])
           }
         >
           <span aria-hidden="true">+</span> Add ingredient

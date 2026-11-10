@@ -1,4 +1,10 @@
-import type { FineliFood, Recipe, RecipeCreate } from "./types";
+import type {
+  FineliFood,
+  NutritionResponse,
+  Recipe,
+  RecipeCreate,
+  RecipeIngredientsUpdate,
+} from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -18,5 +24,13 @@ export const api = {
   getRecipe: (id: number) => request<Recipe>(`/recipes/${id}`),
   createRecipe: (data: RecipeCreate) =>
     request<Recipe>("/recipes", { method: "POST", body: JSON.stringify(data) }),
+  updateIngredients: (id: number, data: RecipeIngredientsUpdate) =>
+    request<Recipe>(`/recipes/${id}/ingredients`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  getNutrition: (id: number) => request<NutritionResponse>(`/recipes/${id}/nutrition`),
+  recalculateNutrition: (id: number) =>
+    request<NutritionResponse>(`/recipes/${id}/nutrition/recalculate`, { method: "POST" }),
   deleteRecipe: (id: number) => request<void>(`/recipes/${id}`, { method: "DELETE" }),
 };

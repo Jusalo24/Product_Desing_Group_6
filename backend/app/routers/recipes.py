@@ -52,6 +52,46 @@ def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
+@router.put("/{recipe_id}/ingredients", response_model=schemas.RecipeRead)
+def update_ingredients(
+    recipe_id: int,
+    payload: schemas.RecipeIngredientsUpdate,
+    db: Session = Depends(get_db),
+):
+    recipe = db.get(models.Recipe, recipe_id)
+    if recipe is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    if len(payload.ingredients) != len(recipe.ingredients):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Ingredient editing cannot add or remove ingredients",
+        )
+
+    for existing, ingredient in zip(recipe.ingredients, payload.ingredients):
+        existing.name = ingredient.name
+        existing.amount = ingredient.amount
+        existing.quantity = ingredient.quantity
+        existing.unit = ingredient.unit
+        existing.fineli_id = ingredient.fineli_id
+        existing.conversion_status = "matched" if ingredient.fineli_id else "unmatched"
+    active_fact = db.scalar(
+        select(models.NutritionFact).where(models.NutritionFact.recipe_id == recipe_id)
+    )
+    if active_fact is not None:
+        db.delete(active_fact)
+    active_runs = db.scalars(
+        select(models.NutritionCalculationRun).where(
+            models.NutritionCalculationRun.recipe_id == recipe_id,
+            models.NutritionCalculationRun.is_active.is_(True),
+        )
+    ).all()
+    for run in active_runs:
+        run.is_active = False
+    db.commit()
+    db.refresh(recipe)
+    return recipe
+
+
 @router.put(
     "/{recipe_id}/ingredients/{ingredient_id}/nutrition-source",
     response_model=schemas.IngredientRead,

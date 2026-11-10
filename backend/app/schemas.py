@@ -31,6 +31,10 @@ class RecipeCreate(RecipeBase):
     ingredients: list[IngredientBase] = []
 
 
+class RecipeIngredientsUpdate(BaseModel):
+    ingredients: list[IngredientBase]
+
+
 class RecipeRead(RecipeBase):
     model_config = ConfigDict(from_attributes=True)
 
