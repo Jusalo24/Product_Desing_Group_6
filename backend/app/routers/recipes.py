@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 from app.database import get_db
+from app.integrations.fineli.factory import get_fineli_client
+from app.integrations.fineli.local_client import FineliFoodNotFound
+from app.integrations.fineli.measure import convert_measure_to_grams
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -99,7 +102,7 @@ def update_ingredients(
 def match_ingredient(
     recipe_id: int,
     ingredient_id: int,
-    payload: schemas.IngredientBase,
+    payload: schemas.IngredientMatch,
     db: Session = Depends(get_db),
 ):
     ingredient = db.scalar(
@@ -110,12 +113,40 @@ def match_ingredient(
     )
     if ingredient is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Ingredient not found")
-    if not payload.fineli_id or payload.quantity is None or payload.unit not in {"g", "kg"}:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "A Fineli id and g/kg quantity are required")
-    ingredient.quantity = payload.quantity
-    ingredient.unit = payload.unit
+    if (payload.quantity is None) != (payload.unit is None):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Quantity and unit must be provided together",
+        )
+    client = get_fineli_client(db)
+    try:
+        try:
+            food = client.get_food(payload.fineli_id)
+        except FineliFoodNotFound as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"Unknown Fineli food id {payload.fineli_id}",
+            ) from exc
+    finally:
+        client.close()
+    if payload.quantity is not None:
+        ingredient.quantity = payload.quantity
+        ingredient.unit = payload.unit
+        ingredient.conversion_status = "exact"
+    elif ingredient.fineli_id != payload.fineli_id or ingredient.quantity is None:
+        conversion = convert_measure_to_grams(ingredient.amount, food.get("units", []))
+        if conversion is None:
+            ingredient.quantity = None
+            ingredient.unit = None
+            ingredient.conversion_status = "unknown"
+        else:
+            ingredient.quantity = conversion.grams
+            ingredient.unit = "g"
+            ingredient.conversion_status = conversion.status
+    elif ingredient.unit in {"g", "kg"}:
+        ingredient.conversion_status = "exact"
     ingredient.fineli_id = payload.fineli_id
-    ingredient.conversion_status = "matched"
+    ingredient.fineli_name = food["name"]
     active_fact = db.scalar(
         select(models.NutritionFact).where(models.NutritionFact.recipe_id == recipe_id)
     )

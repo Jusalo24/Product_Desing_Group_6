@@ -19,6 +19,12 @@ class IngredientRead(IngredientBase):
     conversion_status: str
 
 
+class IngredientMatch(BaseModel):
+    fineli_id: str = Field(min_length=1, max_length=100)
+    quantity: float | None = Field(default=None, gt=0)
+    unit: str | None = Field(default=None, pattern="^(g|kg)$")
+
+
 class RecipeBase(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = ""
@@ -41,6 +47,18 @@ class RecipeRead(RecipeBase):
     id: int
     created_at: datetime
     ingredients: list[IngredientRead] = []
+    source: "RecipeSourceRead | None" = None
+
+
+class RecipeSourceRead(BaseModel):
+    provider: str
+    external_id: str
+    provider_url: str | None = None
+    source_url: str | None = None
+    image_url: str | None = None
+    attribution_text: str
+    extra_data: dict = Field(default_factory=dict)
+    retrieved_at: datetime
 
 
 class SourceInfo(BaseModel):
@@ -64,12 +82,42 @@ class NutritionValues(BaseModel):
     saturated_fat_g: float | None = None
 
 
+class DetailedNutrientTotal(BaseModel):
+    code: str
+    name: str
+    unit: str
+    value: float
+    group: str | None = None
+    per_serving: float | None = None
+
+
+class NutritionCoverage(BaseModel):
+    total_ingredients: int
+    included_ingredients: int
+    ratio: float
+
+
+class NutritionIngredientResultRead(BaseModel):
+    ingredient_id: int
+    ingredient_name: str
+    fineli_id: str | None = None
+    fineli_name: str | None = None
+    quantity_grams: float | None = None
+    status: str
+    reason: str | None = None
+    nutrients: list[DetailedNutrientTotal] = Field(default_factory=list)
+
+
 class NutritionResponse(BaseModel):
     recipe_id: int
     values: NutritionValues
     source: SourceInfo
     status: str
     calculation_run_id: int | None = None
+    per_serving_values: NutritionValues | None = None
+    detailed_totals: list["DetailedNutrientTotal"] = Field(default_factory=list)
+    coverage: "NutritionCoverage"
+    ingredient_results: list["NutritionIngredientResultRead"] = Field(default_factory=list)
 
 
 class FineliFood(BaseModel):
@@ -79,7 +127,23 @@ class FineliFood(BaseModel):
     process: str | None = None
     ingredient_class: str | None = None
     nutrients_per_100g: NutritionValues
+    detailed_nutrients: list["DetailedNutrient"] = Field(default_factory=list)
+    units: list["FineliFoodUnitRead"] = Field(default_factory=list)
     source: SourceInfo
+
+
+class DetailedNutrient(BaseModel):
+    code: str
+    name: str
+    unit: str
+    group: str | None = None
+    value_per_100g: float
+
+
+class FineliFoodUnitRead(BaseModel):
+    code: str
+    name: str
+    grams: float
 
 
 class ExternalMeal(BaseModel):

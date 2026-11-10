@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 from app.config import settings
-from app.database import SessionLocal
+from app.database import SessionLocal, get_db
 from app.integrations.fineli.client import ExternalProviderError
 from app.integrations.themealdb.client import TheMealDbClient
 
@@ -78,6 +80,21 @@ def _call_meal(method, *args):
         return method(client, *args)
     finally:
         client.close()
+
+
+def _saved_external_recipe(db: Session, external_id: str) -> models.Recipe | None:
+    return db.scalar(
+        select(models.Recipe)
+        .join(models.RecipeSource)
+        .options(
+            selectinload(models.Recipe.ingredients),
+            selectinload(models.Recipe.source),
+        )
+        .where(
+            models.RecipeSource.provider == "TheMealDB",
+            models.RecipeSource.external_id == external_id,
+        )
+    )
 
 
 @router.get("/search", response_model=schemas.ExternalMealList)
@@ -173,3 +190,69 @@ def get_external_recipe(external_id: str):
         raise HTTPException(status_code=404, detail="External recipe not found")
     return meal
 
+
+@router.post(
+    "/id/{external_id}/import",
+    response_model=schemas.RecipeRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def import_external_recipe(
+    external_id: str,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    existing = _saved_external_recipe(db, external_id)
+    if existing is not None:
+        response.status_code = status.HTTP_200_OK
+        return existing
+
+    try:
+        meal = _call_meal(TheMealDbClient.get, external_id)
+    except ExternalProviderError as exc:
+        raise _provider_error() from exc
+    if meal is None:
+        raise HTTPException(status_code=404, detail="External recipe not found")
+    if meal["external_id"] != external_id or not meal["name"]:
+        raise HTTPException(status_code=502, detail="External recipe provider returned invalid meal data")
+
+    source = meal["source"]
+    retrieved_at = source.get("retrieved_at")
+    if not isinstance(retrieved_at, datetime):
+        retrieved_at = datetime.now(timezone.utc)
+    recipe = models.Recipe(
+        title=meal["name"],
+        description="",
+        instructions=meal.get("instructions") or "",
+        ingredients=[
+            models.Ingredient(name=item["name"], amount=item.get("amount") or "")
+            for item in meal.get("ingredients", [])
+        ],
+        source=models.RecipeSource(
+            provider="TheMealDB",
+            external_id=external_id,
+            provider_url=source.get("source_url"),
+            source_url=meal.get("source_url"),
+            image_url=meal.get("thumbnail_url"),
+            attribution_text=source["attribution_text"],
+            extra_data={
+                "category": meal.get("category"),
+                "area": meal.get("area"),
+                "tags": meal.get("tags", []),
+                "youtube_url": meal.get("youtube_url"),
+                "creative_commons_confirmed": meal.get("creative_commons_confirmed"),
+            },
+            retrieved_at=retrieved_at,
+        ),
+    )
+    db.add(recipe)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = _saved_external_recipe(db, external_id)
+        if existing is None:
+            raise
+        response.status_code = status.HTTP_200_OK
+        return existing
+    db.refresh(recipe)
+    return recipe

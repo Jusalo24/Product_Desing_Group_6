@@ -27,6 +27,13 @@ FILES = {
         "ENERC;KJ;A;A\nPROT;G;A;A\nCHOAVL;G;A;A\nFAT;G;A;A\nFIBT;G;A;A\n"
         "NACL;MG;A;A\nSUGAR;G;A;A\nFASAT;G;A;A\nNA;MG;A;A\n"
     ),
+    "eufdname_EN.csv": (
+        "THSCODE;DESCRIPT;LANG\n"
+        "ENERC;Energy;EN\nPROT;Protein;EN\nCHOAVL;Carbohydrate;EN\n"
+        "FAT;Fat;EN\nFIBT;Fibre;EN\nNACL;Salt;EN\nSUGAR;Sugars;EN\n"
+        "FASAT;Saturated fatty acids;EN\nNA;Sodium;EN\n"
+    ),
+    "cmpclass_EN.csv": "THSCODE;DESCRIPT;LANG\nA;Other nutrients;EN\n",
     "compunit_EN.csv": "THSCODE;DESCRIPT;LANG\nG;g;EN\nMG;mg;EN\nKJ;kJ;EN\n",
     "component_value.csv": (
         "FOODID;EUFDNAME;BESTLOC;ACQTYPE;METHTYPE;METHIND\n"
@@ -117,6 +124,13 @@ def test_import_converts_units_and_keeps_missing_as_null(local_client) -> None:
     assert food["ingredient_class"] == "X"
     assert food["source"]["provider"] == "Fineli"
     assert food["source"]["source_type"] == "dataset"
+    assert {
+        "code": "ENERC",
+        "name": "Energy",
+        "unit": "kJ",
+        "group": "Other nutrients",
+        "value_per_100g": 1698.3,
+    } in food["detailed_nutrients"]
 
     salt = local_client.get("/api/ingredients/3").json()
     assert salt["nutrients_per_100g"]["salt_g"] == pytest.approx(39.3)  # mg -> g
@@ -232,12 +246,15 @@ def test_recalculate_sums_multiple_local_food_ingredients(local_client) -> None:
     assert response.json()["values"]["energy_kj"] == pytest.approx(40700)
 
 
-def test_recalculate_rejects_food_with_missing_required_nutrient(local_client) -> None:
+def test_recalculate_keeps_available_nutrients_when_some_are_missing(local_client) -> None:
     response = local_client.post(f"/api/recipes/{_recipe_with(local_client, '1')}/nutrition/recalculate")
-    assert response.status_code == 422  # sugar has no protein value in the fixture
+    assert response.status_code == 200
+    result = response.json()
+    assert result["values"]["protein_g"] is None
+    assert result["ingredient_results"][0]["status"] == "included"
 
 
-def test_recalculate_closes_local_client_when_validation_fails(
+def test_recalculate_closes_local_client_after_calculation(
     local_client, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     closed: list[bool] = []
@@ -246,14 +263,16 @@ def test_recalculate_closes_local_client_when_validation_fails(
 
     response = local_client.post(f"/api/recipes/{recipe_id}/nutrition/recalculate")
 
-    assert response.status_code == 422
+    assert response.status_code == 200
     assert closed == [True]
 
 
-def test_recalculate_rejects_unknown_fineli_id(local_client) -> None:
+def test_recalculate_reports_unknown_fineli_id_as_skipped(local_client) -> None:
     response = local_client.post(f"/api/recipes/{_recipe_with(local_client, '999', 1)}/nutrition/recalculate")
-    assert response.status_code == 422
-    assert "999" in response.json()["detail"]
+    assert response.status_code == 200
+    result = response.json()
+    assert result["ingredient_results"][0]["status"] == "skipped"
+    assert result["ingredient_results"][0]["reason"] == "food_not_found"
 
 
 def test_import_reports_missing_files(tmp_path: Path) -> None:

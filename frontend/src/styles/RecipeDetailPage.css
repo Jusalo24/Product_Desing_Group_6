@@ -164,10 +164,21 @@
 
 .ingredient-list-detail li {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 1rem;
   padding-bottom: 0.7rem;
   border-bottom: 1px solid var(--border);
+}
+
+.ingredient-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ingredient-list-detail li > .button {
+  align-self: flex-start;
 }
 
 .ingredient-list-detail li:last-child {

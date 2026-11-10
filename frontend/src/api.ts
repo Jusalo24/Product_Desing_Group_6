@@ -1,5 +1,6 @@
 import type {
   FineliFood,
+  Ingredient,
   NutritionResponse,
   Recipe,
   RecipeCreate,
@@ -20,6 +21,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   searchIngredients: (query: string) =>
     request<FineliFood[]>(`/ingredients/search?q=${encodeURIComponent(query)}`),
+  suggestIngredients: (query: string) => {
+    const params = new URLSearchParams({ q: query });
+    return request<FineliFood[]>(`/ingredients/suggestions?${params.toString()}`);
+  },
+  importExternalRecipe: (externalId: string) =>
+    request<Recipe>(`/external-recipes/id/${encodeURIComponent(externalId)}/import`, {
+      method: "POST",
+    }),
   listRecipes: () => request<Recipe[]>("/recipes"),
   getRecipe: (id: number) => request<Recipe>(`/recipes/${id}`),
   createRecipe: (data: RecipeCreate) =>
@@ -29,6 +38,11 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+  matchIngredient: (recipeId: number, ingredientId: number, fineliId: string) =>
+    request<Ingredient>(
+      `/recipes/${recipeId}/ingredients/${ingredientId}/nutrition-source`,
+      { method: "PUT", body: JSON.stringify({ fineli_id: fineliId }) },
+    ),
   getNutrition: (id: number) => request<NutritionResponse>(`/recipes/${id}/nutrition`),
   recalculateNutrition: (id: number) =>
     request<NutritionResponse>(`/recipes/${id}/nutrition/recalculate`, { method: "POST" }),
