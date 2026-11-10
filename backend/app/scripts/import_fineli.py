@@ -22,7 +22,12 @@ from app.database import (
     engine as default_engine,
     ensure_fineli_classification_columns,
 )
-from app.models import FineliFood, FineliFoodUnit
+from app.models import (
+    FineliComponent,
+    FineliFood,
+    FineliFoodNutrient,
+    FineliFoodUnit,
+)
 from app.scripts.progress import ProgressBar
 
 DEFAULT_DIR = Path(__file__).resolve().parents[2] / "data" / "fineli"
@@ -30,6 +35,8 @@ REQUIRED_FILES = (
     "food.csv",
     "foodname_EN.csv",
     "component.csv",
+    "eufdname_EN.csv",
+    "cmpclass_EN.csv",
     "compunit_EN.csv",
     "component_value.csv",
     "foodaddunit.csv",
@@ -182,12 +189,41 @@ def import_fineli(
             if code in units and units[code][0] != target:
                 raise ValueError(f"Component {code} has unexpected unit type {units[code][0]}")
 
+    unit_names = {
+            row["THSCODE"].strip(): row["DESCRIPT"].strip()
+            for row in read_rows(data_dir / "compunit_EN.csv")
+    }
+    component_names = {
+            row["THSCODE"].strip(): row["DESCRIPT"].strip()
+            for row in read_rows(data_dir / "eufdname_EN.csv")
+    }
+    component_groups = {
+            row["THSCODE"].strip(): row["DESCRIPT"].strip()
+            for row in read_rows(data_dir / "cmpclass_EN.csv")
+    }
+    components = [
+            {
+                "code": row["EUFDNAME"].strip(),
+                "name_en": component_names.get(row["EUFDNAME"].strip())
+                or row["EUFDNAME"].strip(),
+                "unit": unit_names.get(row["COMPUNIT"].strip())
+                or row["COMPUNIT"].strip(),
+                "group_name": component_groups.get(row.get("CMPCLASS", "").strip()),
+            }
+            for row in read_rows(data_dir / "component.csv")
+            if row.get("EUFDNAME", "").strip()
+    ]
+
     # component values: {food_id: {component_code: value in g (or kJ)}}
     values: dict[str, dict[str, float]] = {}
+    detailed_nutrients: dict[tuple[str, str], float] = {}
     component_rows = read_rows(data_dir / "component_value.csv")
     with ProgressBar("Processing nutrient values", len(component_rows), show_progress) as progress:
         for row in component_rows:
             code = row["EUFDNAME"]
+            detail_value = parse_number(row.get("BESTLOC"))
+            if detail_value is not None:
+                detailed_nutrients[(row["FOODID"].strip(), code)] = detail_value
             if code in WANTED_CODES and code in units:
                 number = parse_number(row["BESTLOC"])
                 if number is not None:
@@ -233,11 +269,23 @@ def import_fineli(
             progress.advance()
 
     with ProgressBar("Preparing Fineli database tables", 1, show_progress) as progress:
-        Base.metadata.create_all(bind=engine, tables=[FineliFood.__table__, FineliFoodUnit.__table__])
+        Base.metadata.create_all(
+            bind=engine,
+            tables=[
+                FineliFood.__table__,
+                FineliFoodUnit.__table__,
+                FineliComponent.__table__,
+                FineliFoodNutrient.__table__,
+            ],
+        )
         ensure_fineli_classification_columns(engine)
         progress.advance()
     with Session(engine) as db:
-        with ProgressBar("Replacing existing Fineli data", 2, show_progress) as progress:
+        with ProgressBar("Replacing existing Fineli data", 4, show_progress) as progress:
+            db.execute(delete(FineliFoodNutrient))
+            progress.advance()
+            db.execute(delete(FineliComponent))
+            progress.advance()
             db.execute(delete(FineliFoodUnit))
             progress.advance()
             db.execute(delete(FineliFood))
@@ -245,6 +293,19 @@ def import_fineli(
         for model, records, label in (
             (FineliFood, foods, "Saving food records"),
             (FineliFoodUnit, food_units, "Saving unit conversions"),
+            (FineliComponent, components, "Saving component definitions"),
+            (
+                FineliFoodNutrient,
+                [
+                    {
+                        "food_id": food_id,
+                        "component_code": code,
+                        "value_per_100g": value,
+                    }
+                    for (food_id, code), value in detailed_nutrients.items()
+                ],
+                "Saving detailed nutrient values",
+            ),
         ):
             with ProgressBar(label, len(records), show_progress) as progress:
                 for offset in range(0, len(records), 1000):
