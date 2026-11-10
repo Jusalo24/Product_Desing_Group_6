@@ -44,3 +44,31 @@ def ensure_fineli_classification_columns(db_engine=engine) -> None:
             connection.execute(
                 text(f"ALTER TABLE fineli_foods ADD COLUMN {name} {definition}")
             )
+
+
+def ensure_recipe_source_columns(db_engine=engine) -> None:
+    """Add provenance columns to databases created before recipe imports."""
+    existing = {
+        column["name"] for column in inspect(db_engine).get_columns("recipe_sources")
+    }
+    columns = {
+        "provider_url": "VARCHAR(1000)",
+        "image_url": "VARCHAR(1000)",
+        "extra_data": "JSON",
+    }
+    missing = [
+        (name, definition)
+        for name, definition in columns.items()
+        if name not in existing
+    ]
+    if not missing:
+        return
+    with db_engine.begin() as connection:
+        for name, definition in missing:
+            connection.execute(
+                text(f"ALTER TABLE recipe_sources ADD COLUMN {name} {definition}")
+            )
+        if any(name == "extra_data" for name, _ in missing):
+            connection.execute(
+                text("UPDATE recipe_sources SET extra_data = '{}' WHERE extra_data IS NULL")
+            )

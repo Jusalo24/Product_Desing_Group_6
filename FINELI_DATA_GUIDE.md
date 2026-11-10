@@ -280,13 +280,19 @@ The current implementation imports the nutrient fields and household-unit rows d
 
 TheMealDB gives ingredient names like `Chicken Breasts`, `Plain Flour`, `Olive Oil`. Fineli names follow their own conventions. A naive "contains" search finds too much or nothing.
 
-Suggested layers, from cheapest to most powerful:
+The implemented suggestion endpoint normalizes ingredient names and applies the
+curated aliases in `backend/app/data/fineli-ingredient-aliases.json` before
+searching both the alias and original phrase. The alias file covers common
+English/US/UK terms, spelling variants, pasta shapes, produce names, pantry
+ingredients, and broad meat/dairy terms. Targets are based on names present in
+the imported Fineli release.
 
-1. **Normalize both sides.** Lowercase, trim, drop plural endings, remove words like "fresh", "chopped", "large".
-2. **Prefer exact matches**, then prefix matches, then contains matches. The local search ranks exact and prefix matches first across both Finnish and English names; it does not currently prefer English over Finnish.
-3. **Alias table.** A small hand-made map for common mismatches, for example `plain flour` to the Fineli wheat flour entry, `spring onion` to the Fineli equivalent. Start with the 30 to 50 ingredients that appear most in TheMealDB.
-4. **Fuzzy matching.** PostgreSQL `pg_trgm` (trigram similarity), or the Python library `rapidfuzz`, to rank near matches.
-5. **Let the user confirm.** Show the top 3 suggestions and let the user pick. Store the choice in `ingredient.fineli_id`. This also gives you a ready-made list of corrections to feed back into the alias table.
+Aliases only broaden the candidate search; they do not assert that two foods
+have identical nutrient profiles or automatically save a match. The user must
+confirm a specific Fineli food. For example, `penne rigate` can suggest the
+closest available general pasta records, but this release has no exact penne
+entry. Review the alias file against new recipe inputs and Fineli releases, and
+avoid aliases that imply a false equivalence.
 
 ### 6.2 Prefer basic foods over composite dishes
 
@@ -329,7 +335,7 @@ Fix this at the source too: after the first import, count how many foods have mi
 ### 6.6 Search quality
 
 - **Language:** search currently covers both English and Finnish names. Matching is case-insensitive, but neither language is preferred over the other.
-- **Synonyms and spelling variants:** `aubergine`/`eggplant`, `courgette`/`zucchini`, `coriander`/`cilantro`. These belong in the alias table (6.1).
+- **Synonyms and spelling variants:** the curated alias table maps common variants such as `eggplant`/`aubergine`, `courgette`/`zucchini`, `cilantro`/`coriander`, and `penne rigate` to available broader pasta candidates. These mappings are suggestions only.
 - **Performance:** a few thousand rows searched with `LIKE` is instant. Only add `pg_trgm` or full-text search for fuzzy matching, not for speed.
 
 ---
