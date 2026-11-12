@@ -29,9 +29,9 @@ function jsonResponse(body: unknown, status = 200): Response {
   } as Response;
 }
 
-function renderPage() {
+function renderPage(path = "/?q=Arrabiata") {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <MealSearchPage />
     </MemoryRouter>,
   );
@@ -53,12 +53,7 @@ describe("MealSearchPage", () => {
 
   it("searches meals and displays the returned recipe details", async () => {
     const user = userEvent.setup();
-    renderPage();
-
-    const searchInput = screen.getByRole("textbox", { name: "Hae reseptiä" });
-    await user.clear(searchInput);
-    await user.type(searchInput, "chicken & rice");
-    await user.click(screen.getByRole("button", { name: "Hae" }));
+    renderPage(`/?q=${encodeURIComponent("chicken & rice")}`);
 
     expect(await screen.findByRole("heading", { name: meal.name })).toBeVisible();
     const [requestedUrl] = fetchMock.mock.calls[0];
@@ -89,8 +84,6 @@ describe("MealSearchPage", () => {
     fetchMock.mockResolvedValueOnce(jsonResponse([]));
     renderPage();
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Hae" }));
-
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Reseptejä ei löytynyt.",
     );
@@ -102,7 +95,7 @@ describe("MealSearchPage", () => {
       .mockResolvedValueOnce(jsonResponse([meal]))
       .mockResolvedValueOnce(jsonResponse(savedRecipe, 201));
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={["/?q=Arrabiata"]}>
         <Routes>
           <Route path="/" element={<MealSearchPage />} />
           <Route path="/recipes/:id" element={<p>Saved recipe page</p>} />
@@ -111,7 +104,6 @@ describe("MealSearchPage", () => {
     );
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Hae" }));
     await user.click(await screen.findByRole("button", { name: "Näytä resepti" }));
     await user.click(screen.getByRole("button", { name: "Save recipe for nutrition" }));
 
@@ -121,16 +113,13 @@ describe("MealSearchPage", () => {
     );
   });
 
-  it("requires a non-blank query without making a request", async () => {
-    const user = userEvent.setup();
-    renderPage();
+  it("shows example recipes without making a request when there is no query", () => {
+    renderPage("/");
 
-    await user.clear(screen.getByRole("textbox", { name: "Hae reseptiä" }));
-    await user.click(screen.getByRole("button", { name: "Hae" }));
-
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Kirjoita ruokalajin nimi.",
-    );
+    expect(screen.getByRole("heading", { name: "Dinner tonight" })).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "Spicy Arrabiata Penne" }),
+    ).toHaveAttribute("href", "/?q=Arrabiata");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -148,8 +137,6 @@ describe("MealSearchPage", () => {
     );
     renderPage();
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Hae" }));
-
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Reseptien haku epäonnistui: External recipe provider unavailable",
     );
@@ -159,14 +146,12 @@ describe("MealSearchPage", () => {
     fetchMock.mockResolvedValueOnce(jsonResponse([{ id: "incomplete" }]));
     renderPage();
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Hae" }));
-
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "TheMealDB palautti odottamattoman vastauksen.",
     );
   });
 
-  it("disables the search button while the request is pending", async () => {
+  it("shows a loading message while the request is pending", async () => {
     let resolveResponse!: (response: Response) => void;
     fetchMock.mockReturnValueOnce(
       new Promise<Response>((resolve) => {
@@ -175,12 +160,10 @@ describe("MealSearchPage", () => {
     );
     renderPage();
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Hae" }));
-
-    expect(screen.getByRole("button", { name: "Haetaan..." })).toBeDisabled();
+    expect(await screen.findByRole("status")).toHaveTextContent("Haetaan...");
     resolveResponse(jsonResponse([]));
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Hae" })).toBeEnabled();
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
   });
 });

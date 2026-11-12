@@ -1,3 +1,6 @@
+/* Colours, fonts and shared blocks (.recipe-card, .eyebrow, .section-count)
+   come from index.css. Use the CSS variables there, not hard-coded colours. */
+
 .recipe-form {
   max-width: 720px;
   margin: 0 auto;
@@ -5,7 +8,8 @@
 }
 
 .recipe-header {
-  padding: 1rem 0 0.25rem;
+  padding: 0.5rem 0 0.25rem;
+  text-align: center;
 }
 
 .recipe-title-heading {
@@ -20,11 +24,13 @@
   border-bottom: 2px solid transparent !important;
   border-radius: 0 !important;
   background: transparent;
-  color: var(--text);
-  font-size: clamp(2rem, 5vw, 3.25rem) !important;
-  font-weight: 750 !important;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
+  color: var(--ink);
+  font-family: var(--font-heading) !important;
+  font-size: clamp(1.75rem, 4.5vw, 2.75rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-align: center;
 }
 
 .recipe-title:hover,
@@ -36,14 +42,8 @@
 .recipe-subtitle {
   margin: 0.5rem 0 0;
   color: var(--muted);
-}
-
-.recipe-card {
-  padding: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: white;
-  box-shadow: 0 6px 20px rgb(34 34 34 / 4%);
+  font-family: var(--font-serif);
+  font-style: italic;
 }
 
 .section-heading {
@@ -54,29 +54,11 @@
 }
 
 .section-heading h2 {
-  margin: 0.15rem 0 0;
-  font-size: 1.2rem;
-}
-
-.eyebrow {
-  margin: 0;
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-
-.section-count {
-  display: grid;
-  width: 1.75rem;
-  height: 1.75rem;
-  place-items: center;
-  border-radius: 50%;
-  background: #f7e6dc;
-  color: var(--accent);
-  font-size: 0.85rem;
-  font-weight: 700;
 }
 
 .recipe-field {
@@ -93,8 +75,8 @@
   width: 100%;
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--radius);
+  background: var(--surface);
   color: var(--text);
   font: inherit;
   font-weight: 400;
@@ -105,7 +87,7 @@
 .recipe-field textarea:focus {
   border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 3px rgb(217 98 43 / 14%);
+  box-shadow: var(--focus-ring);
 }
 
 .recipe-field textarea {
@@ -162,9 +144,9 @@
   min-height: 2.5rem;
   padding: 0.5rem 1.65rem 0.5rem 0.55rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background-color: #fff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23716b64' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5'/%3E%3C/svg%3E");
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23666666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5'/%3E%3C/svg%3E");
   background-position: right 0.5rem center;
   background-repeat: no-repeat;
   color: var(--text);
@@ -177,13 +159,13 @@
 
 .unit-select:hover {
   border-color: var(--accent);
-  background-color: #fffdfb;
+  background-color: var(--surface-muted);
 }
 
 .unit-select:focus {
   border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 3px rgb(217 98 43 / 14%);
+  box-shadow: var(--focus-ring);
 }
 
 .unit-select option {
@@ -203,8 +185,8 @@
 
 .ingredient-suggestions {
   top: calc(100% + 0.25rem);
-  border-radius: 8px;
-  box-shadow: 0 8px 18px rgb(34 34 34 / 12%);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-raised);
 }
 
 .ingredient-suggestions button {
@@ -212,7 +194,7 @@
 }
 
 .ingredient-suggestions .suggestion-active button {
-  background: #f3eee8;
+  background: var(--surface-muted);
 }
 
 .remove-ingredient {
@@ -220,7 +202,7 @@
   height: 2.5rem;
   margin-top: 0;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--muted);
   font-size: 1.4rem;
@@ -231,7 +213,7 @@
 .remove-ingredient:hover:not(:disabled),
 .remove-ingredient:focus-visible:not(:disabled) {
   border-color: var(--border);
-  background: #fafaf7;
+  background: var(--surface-muted);
   color: var(--accent);
 }
 
@@ -246,7 +228,7 @@
 
 .add-ingredient span {
   margin-right: 0.25rem;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   line-height: 0;
 }
 
@@ -258,7 +240,7 @@
 
 .save-recipe {
   min-width: 9rem;
-  padding: 0.7rem 1.2rem;
+  padding: 0.75rem 1.4rem;
 }
 
 .sr-only {
@@ -275,7 +257,6 @@
 @media (max-width: 600px) {
   .recipe-card {
     padding: 1rem;
-    border-radius: 10px;
   }
 
   .recipe-meta {

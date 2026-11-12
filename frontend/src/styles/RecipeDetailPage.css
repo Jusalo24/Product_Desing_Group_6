@@ -1,10 +1,14 @@
+/* Colours, fonts and shared blocks (.detail-card, .eyebrow, .section-count,
+   .muted-copy) come from index.css. Use the CSS variables there, not
+   hard-coded colours. */
+
 .recipe-detail {
   max-width: 900px;
   margin: 0 auto;
 }
 
 .detail-hero {
-  padding: 1rem 0 1.5rem;
+  padding: 0.5rem 0 1.5rem;
 }
 
 .detail-hero-topline {
@@ -15,9 +19,10 @@
 }
 
 .detail-hero h1 {
-  margin: 0.2rem 0 0.75rem;
-  font-size: clamp(2rem, 5vw, 3.25rem);
-  letter-spacing: -0.04em;
+  margin: 0.35rem 0 0.75rem;
+  font-size: clamp(1.75rem, 4.5vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .recipe-actions {
@@ -32,8 +37,8 @@
   place-items: center;
   border: 1px solid var(--border);
   border-radius: 50%;
-  background: white;
-  color: var(--text);
+  background: var(--surface);
+  color: var(--ink);
   cursor: pointer;
   font-size: 1.7rem;
   line-height: 1;
@@ -43,7 +48,7 @@
 .recipe-actions-trigger:hover,
 .recipe-actions-trigger[aria-expanded="true"] {
   border-color: var(--accent);
-  background: #f7e6dc;
+  background: var(--accent-soft);
   transform: translateY(-1px);
 }
 
@@ -57,15 +62,15 @@
   flex-direction: column;
   padding: 0.35rem;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: white;
-  box-shadow: 0 12px 30px rgb(34 34 34 / 14%);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
 }
 
 .recipe-actions-menu button {
   padding: 0.7rem 0.8rem;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text);
   cursor: pointer;
@@ -75,28 +80,21 @@
 
 .recipe-actions-menu button:hover,
 .recipe-actions-menu button:focus-visible {
-  background: #fafaf7;
+  background: var(--surface-muted);
   outline: none;
 }
 
 .recipe-actions-menu .menu-delete {
-  color: #b04432;
+  color: var(--danger);
 }
 
 .detail-description {
   max-width: 42rem;
   margin: 0;
   color: var(--muted);
+  font-family: var(--font-serif);
   font-size: 1.05rem;
-}
-
-.eyebrow {
-  margin: 0;
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-style: italic;
 }
 
 .detail-meta {
@@ -107,25 +105,20 @@
 }
 
 .detail-meta span {
-  padding: 0.45rem 0.7rem;
+  padding: 0.45rem 0.8rem;
   border-radius: 999px;
-  background: #f7e6dc;
-  color: var(--text);
-  font-size: 0.9rem;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.85fr);
   gap: 1rem;
-}
-
-.detail-card {
-  padding: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: white;
-  box-shadow: 0 6px 20px rgb(34 34 34 / 4%);
 }
 
 .detail-section-heading {
@@ -137,20 +130,19 @@
 
 .detail-section-heading h2,
 .instructions-card h2 {
-  margin: 0.15rem 0 0;
-  font-size: 1.2rem;
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.section-count {
-  display: grid;
-  width: 1.75rem;
-  height: 1.75rem;
-  place-items: center;
-  border-radius: 50%;
-  background: #f7e6dc;
-  color: var(--accent);
+.detail-card h3 {
+  margin: 1.25rem 0 0.5rem;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .ingredient-list-detail {
@@ -212,8 +204,8 @@
   box-sizing: border-box;
   padding: 0.45rem 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 7px;
-  background: white;
+  border-radius: var(--radius);
+  background: var(--surface);
   color: var(--text);
   font: inherit;
 }
@@ -226,7 +218,7 @@
 .detail-unit-select:focus {
   border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 3px rgb(217 98 43 / 12%);
+  box-shadow: var(--focus-ring);
 }
 
 .ingredient-edit-actions {
@@ -245,8 +237,8 @@
 
 .nutrition-grid div {
   padding: 0.75rem;
-  border-radius: 8px;
-  background: #fafaf7;
+  border-radius: var(--radius);
+  background: var(--surface-muted);
 }
 
 .nutrition-grid dt {
@@ -259,7 +251,6 @@
   font-weight: 700;
 }
 
-.muted-copy,
 .attribution {
   color: var(--muted);
 }
@@ -272,7 +263,9 @@
 .attribution {
   display: block;
   margin-top: 0.75rem;
+  font-family: var(--font-serif);
   font-size: 0.75rem;
+  font-style: italic;
   line-height: 1.4;
 }
 
@@ -282,7 +275,6 @@
 
 .instructions {
   margin-bottom: 0;
-  line-height: 1.7;
 }
 
 .detail-delete {

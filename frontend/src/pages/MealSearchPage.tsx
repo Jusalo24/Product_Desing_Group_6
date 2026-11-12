@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 
 type Meal = {
@@ -63,9 +63,33 @@ function getErrorMessage(body: unknown, status: number): string {
   return `HTTP ${status}`;
 }
 
+// Example recipes shown on the homepage before the user searches.
+// Clicking one runs a TheMealDB search for `query`.
+const FEATURED_RECIPES = [
+  {
+    title: "Spicy Arrabiata Penne",
+    query: "Arrabiata",
+    emoji: "🍝",
+    background: "linear-gradient(135deg, #f6d5c3, #e8a07c)",
+  },
+  {
+    title: "Teriyaki Chicken",
+    query: "Teriyaki",
+    emoji: "🍗",
+    background: "linear-gradient(135deg, #f3e3b5, #d9b25f)",
+  },
+  {
+    title: "Hearty Homemade Soup",
+    query: "soup",
+    emoji: "🍲",
+    background: "linear-gradient(135deg, #d8e8c8, #9cbf7d)",
+  },
+];
+
 export default function MealSearchPage() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState("Arrabiata");
+  const [params] = useSearchParams();
+  const query = (params.get("q") ?? "").trim();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [loading, setLoading] = useState(false);
@@ -91,117 +115,124 @@ export default function MealSearchPage() {
     }
   }
 
-  async function searchMeals(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const searchTerm = query.trim();
-
-    if (!searchTerm) {
-      setError("Kirjoita ruokalajin nimi.");
+  useEffect(() => {
+    if (!query) {
+      setMeals([]);
+      setSelectedMeal(null);
+      setError("");
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError("");
-    setMeals([]);
-    setSelectedMeal(null);
+    let cancelled = false;
 
-    try {
-      const url = new URL("/api/meals/search", window.location.origin);
-      url.searchParams.set("q", searchTerm);
-      const response = await fetch(url);
+    async function searchMeals(searchTerm: string) {
+      setLoading(true);
+      setError("");
+      setMeals([]);
+      setSelectedMeal(null);
 
-      if (!response.ok) {
-        const body: unknown = await response.json().catch(() => null);
-        throw new Error(getErrorMessage(body, response.status));
+      try {
+        const url = new URL("/api/meals/search", window.location.origin);
+        url.searchParams.set("q", searchTerm);
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          const body: unknown = await response.json().catch(() => null);
+          throw new Error(getErrorMessage(body, response.status));
+        }
+
+        const body: unknown = await response.json();
+        if (!Array.isArray(body) || !body.every(isMeal)) {
+          throw new Error("TheMealDB palautti odottamattoman vastauksen.");
+        }
+        if (cancelled) return;
+
+        setMeals(body);
+        if (body.length === 0) {
+          setError("Reseptejä ei löytynyt. Kokeile toista hakusanaa.");
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error("TheMealDB search failed:", err);
+        setError(
+          err instanceof Error
+            ? `Reseptien haku epäonnistui: ${err.message}`
+            : "Reseptien haku epäonnistui tuntemattomasta syystä.",
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      const body: unknown = await response.json();
-      if (!Array.isArray(body) || !body.every(isMeal)) {
-        throw new Error("TheMealDB palautti odottamattoman vastauksen.");
-      }
-
-      setMeals(body);
-      if (body.length === 0) {
-        setError("Reseptejä ei löytynyt. Kokeile toista hakusanaa.");
-      }
-    } catch (err) {
-      console.error("TheMealDB search failed:", err);
-      setError(
-        err instanceof Error
-          ? `Reseptien haku epäonnistui: ${err.message}`
-          : "Reseptien haku epäonnistui tuntemattomasta syystä.",
-      );
-    } finally {
-      setLoading(false);
     }
+
+    void searchMeals(query);
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+
+  if (!query) {
+    return (
+      <section>
+        <h1 className="section-title">
+          <span>Dinner tonight</span>
+        </h1>
+        <div className="feature-grid">
+          {FEATURED_RECIPES.map((recipe) => (
+            <Link
+              key={recipe.query}
+              to={`/?q=${encodeURIComponent(recipe.query)}`}
+              className="feature-card"
+            >
+              <div
+                className="feature-card__image"
+                style={{ background: recipe.background }}
+              >
+                <span aria-hidden="true">{recipe.emoji}</span>
+              </div>
+              <h2 className="feature-card__title">{recipe.title}</h2>
+            </Link>
+          ))}
+        </div>
+      </section>
+    );
   }
 
   return (
     <section>
-      <h1>Reseptihaku</h1>
-      <p>Etsi ruokia ja reseptejä TheMealDB:n tietokannasta.</p>
+      <h1 className="section-title">
+        <span>Results for “{query}”</span>
+      </h1>
 
-      <form
-        onSubmit={searchMeals}
-        style={{ display: "flex", gap: 8, marginBottom: 20 }}
-      >
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Esim. Arrabiata tai chicken"
-          aria-label="Hae reseptiä"
-          style={{ flex: 1, minWidth: 0, padding: 12, fontSize: 16 }}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ padding: "12px 18px", cursor: "pointer" }}
-        >
-          {loading ? "Haetaan..." : "Hae"}
-        </button>
-      </form>
-
+      {loading && <p role="status">Haetaan...</p>}
       {error && <p role="alert">{error}</p>}
 
-      <section
-        aria-label="Hakutulokset"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-          gap: 16,
-        }}
-      >
+      <section aria-label="Hakutulokset" className="feature-grid">
         {meals.map((meal) => (
-          <article
-            key={meal.id}
-            style={{
-              overflow: "hidden",
-              border: "1px solid #ddd",
-              borderRadius: 10,
-            }}
-          >
-            {meal.imageUrl && (
+          <article key={meal.id} className="feature-card">
+            {meal.imageUrl ? (
               <img
                 src={meal.imageUrl}
                 alt=""
                 loading="lazy"
-                style={{
-                  display: "block",
-                  width: "100%",
-                  aspectRatio: "4 / 3",
-                  objectFit: "cover",
-                }}
+                className="feature-card__image"
               />
+            ) : (
+              <div className="feature-card__image feature-card__image--empty">
+                <span aria-hidden="true">🍽️</span>
+              </div>
             )}
-            <div style={{ padding: 14 }}>
-              <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>{meal.name}</h2>
-              <p style={{ color: "#666", fontSize: 14 }}>
-                {[meal.category, meal.area].filter(Boolean).join(" · ")}
-              </p>
-              <button type="button" onClick={() => setSelectedMeal(meal)}>
-                Näytä resepti
-              </button>
-            </div>
+            <h2 className="feature-card__title">{meal.name}</h2>
+            <p className="feature-card__meta">
+              {[meal.category, meal.area].filter(Boolean).join(" · ")}
+            </p>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => setSelectedMeal(meal)}
+            >
+              Näytä resepti
+            </button>
           </article>
         ))}
       </section>
@@ -209,15 +240,11 @@ export default function MealSearchPage() {
       {selectedMeal && (
         <section
           aria-labelledby="selected-meal-title"
-          style={{
-            marginTop: 28,
-            padding: 20,
-            border: "2px solid #888",
-            borderRadius: 12,
-          }}
+          className="panel selected-meal"
         >
+          <p className="eyebrow">Selected recipe</p>
           <h2 id="selected-meal-title">{selectedMeal.name}</h2>
-          <p style={{ color: "#666" }}>
+          <p className="muted-copy">
             {[selectedMeal.category, selectedMeal.area]
               .filter(Boolean)
               .join(" · ")}
@@ -248,7 +275,7 @@ export default function MealSearchPage() {
 
           <h3>Valmistusohje</h3>
           {selectedMeal.instructions ? (
-            <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+            <p className="instructions">
               {selectedMeal.instructions}
             </p>
           ) : (
@@ -284,7 +311,7 @@ export default function MealSearchPage() {
         </section>
       )}
 
-      <footer style={{ marginTop: 32, color: "#666", fontSize: 12 }}>
+      <footer className="source-note">
         Recipe data and imagery:{" "}
         <a href="https://www.themealdb.com/" target="_blank" rel="noreferrer">
           TheMealDB
