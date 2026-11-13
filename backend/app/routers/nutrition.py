@@ -11,6 +11,7 @@ from app import models, schemas
 from app.database import get_db
 from app.integrations.fineli.factory import get_fineli_client
 from app.integrations.fineli.local_client import FineliFoodNotFound
+from app.integrations.fineli.measure import convert_measure_to_grams
 
 router = APIRouter(prefix="/recipes", tags=["nutrition"])
 NUTRIENT_FIELDS = tuple(schemas.NutritionValues.model_fields)
@@ -172,6 +173,22 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
     client = get_fineli_client(db)
     try:
         for ingredient in recipe.ingredients:
+            is_negligible = ingredient.conversion_status == "negligible"
+            if not is_negligible and ingredient.quantity is None and ingredient.amount:
+                parsed_measure = convert_measure_to_grams(ingredient.amount, [])
+                is_negligible = parsed_measure is not None and parsed_measure.status == "negligible"
+            if is_negligible and ingredient.quantity is None:
+                ingredient_rows.append(
+                    models.NutritionIngredientResult(
+                        run_id=run.id,
+                        ingredient_id=ingredient.id,
+                        status="skipped",
+                        reason="negligible_measure",
+                        source_id=ingredient.fineli_id,
+                        source_name=ingredient.fineli_name,
+                    )
+                )
+                continue
             if not ingredient.fineli_id:
                 ingredient_rows.append(
                     models.NutritionIngredientResult(

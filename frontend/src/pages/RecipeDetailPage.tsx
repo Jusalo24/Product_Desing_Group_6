@@ -33,6 +33,7 @@ export default function RecipeDetailPage() {
   const [ingredientError, setIngredientError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Record<number, FineliFood[]>>({});
   const [matchingIngredientId, setMatchingIngredientId] = useState<number | null>(null);
+  const [autoMatching, setAutoMatching] = useState(false);
   const [matchErrors, setMatchErrors] = useState<Record<number, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -135,6 +136,23 @@ export default function RecipeDetailPage() {
       }));
     } finally {
       setMatchingIngredientId(null);
+    }
+  }
+
+  async function autoMatchAll() {
+    if (!recipe) return;
+    setAutoMatching(true);
+    setIngredientError(null);
+    try {
+      const updated = await api.autoMatchIngredients(recipe.id);
+      setRecipe(updated);
+      setNutrition(null);
+    } catch (err) {
+      setIngredientError(
+        err instanceof Error ? err.message : "Could not auto-match ingredients.",
+      );
+    } finally {
+      setAutoMatching(false);
     }
   }
 
@@ -253,6 +271,18 @@ export default function RecipeDetailPage() {
             </div>
             <span className="section-count">{recipe.ingredients.length}</span>
           </div>
+          {!editingIngredients && recipe.ingredients.some((item) => !item.fineli_id) && (
+            <div className="ingredient-edit-actions">
+              <button
+                type="button"
+                className="button secondary"
+                onClick={autoMatchAll}
+                disabled={autoMatching}
+              >
+                {autoMatching ? "Auto-matching…" : "Auto-match ingredients"}
+              </button>
+            </div>
+          )}
           {editingIngredients ? (
             <div className="ingredient-edit-list">
               {draftIngredients.map((ingredient, index) => (
@@ -315,6 +345,13 @@ export default function RecipeDetailPage() {
                     {i.fineli_id
                       ? `Fineli match: ${i.fineli_name ?? i.fineli_id}`
                       : "No Fineli food selected"}
+                    {i.quantity != null
+                      ? ` · ${formatNutrient(i.quantity, i.unit ?? "g")} (${i.conversion_status ?? "estimated"})`
+                      : i.conversion_status === "negligible"
+                        ? " · negligible amount"
+                        : i.conversion_status === "unknown"
+                          ? " · unknown quantity"
+                          : ""}
                   </p>
                   <button
                     type="button"
@@ -334,6 +371,11 @@ export default function RecipeDetailPage() {
                       {suggestions[i.id].map((food) => (
                         <li key={food.id}>
                           <strong>{food.name}</strong>
+                          {(food.food_type || food.process) && (
+                            <p className="muted-copy">
+                              {[food.food_type, food.process].filter(Boolean).join(" · ")}
+                            </p>
+                          )}
                           {food.detailed_nutrients.slice(0, 3).length > 0 && (
                             <p>
                               {food.detailed_nutrients
@@ -528,6 +570,7 @@ const legacyNutrientUnits: Record<string, string> = {
 const skippedReasons: Record<string, string> = {
   unmatched: "No Fineli food selected",
   unknown_quantity: "The ingredient quantity could not be converted",
+  negligible_measure: "Negligible amount (e.g. pinch or to taste)",
   food_not_found: "The selected Fineli food is no longer available",
   missing_nutrients: "Fineli has no usable nutrient values for this food",
 };

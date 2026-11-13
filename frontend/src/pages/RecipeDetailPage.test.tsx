@@ -226,4 +226,42 @@ describe("RecipeDetailPage ingredient matching", () => {
     expect(screen.getByText("Coverage: 0 of 1 ingredients (0%)")).toBeVisible();
     expect(screen.getByText("Skipped: No Fineli food selected")).toBeVisible();
   });
+
+  it("supports auto-matching unmatched ingredients and shows negligible reason", async () => {
+    const autoMatchedRecipe = {
+      ...recipe,
+      ingredients: [
+        {
+          ...ingredient,
+          fineli_id: "100",
+          fineli_name: "Olive oil",
+          quantity: 13.5,
+          unit: "g" as const,
+          conversion_status: "estimated",
+        },
+      ],
+    };
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3") return jsonResponse(recipe);
+      if (url.pathname === "/api/recipes/3/ingredients/auto-match" && init?.method === "POST") {
+        return jsonResponse(autoMatchedRecipe);
+      }
+      if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse({}, 404);
+      return jsonResponse({}, 404);
+    });
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Auto-match ingredients" }));
+
+    expect(await screen.findByText(/Fineli match: Olive oil/)).toBeVisible();
+    expect(screen.getByText(/13\.5 g \(estimated\)/)).toBeVisible();
+  });
 });

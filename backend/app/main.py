@@ -9,6 +9,7 @@ from app.database import (
     Base,
     engine,
     ensure_fineli_classification_columns,
+    ensure_fineli_search_indexes,
     ensure_recipe_source_columns,
 )
 from app.routers import recipes
@@ -21,6 +22,7 @@ async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     ensure_fineli_classification_columns(engine)
     ensure_recipe_source_columns(engine)
+    ensure_fineli_search_indexes(engine)
     yield
 
 

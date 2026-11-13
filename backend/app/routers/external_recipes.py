@@ -12,7 +12,11 @@ from app import models, schemas
 from app.config import settings
 from app.database import SessionLocal, get_db
 from app.integrations.fineli.client import ExternalProviderError
+from app.integrations.fineli.factory import get_fineli_client
+from app.integrations.fineli.local_client import FineliFoodNotFound
+from app.integrations.fineli.matching import lookup_mapping
 from app.integrations.themealdb.client import TheMealDbClient
+from app.routers.recipes import apply_fineli_match_to_ingredient
 
 router = APIRouter(prefix="/external-recipes", tags=["external-recipes"])
 
@@ -219,14 +223,31 @@ def import_external_recipe(
     retrieved_at = source.get("retrieved_at")
     if not isinstance(retrieved_at, datetime):
         retrieved_at = datetime.now(timezone.utc)
+    ingredient_models: list[models.Ingredient] = []
+    fineli_client = get_fineli_client(db)
+    try:
+        for item in meal.get("ingredients", []):
+            ing = models.Ingredient(name=item["name"], amount=item.get("amount") or "")
+            mapping = lookup_mapping(db, item["name"])
+            if (
+                mapping
+                and mapping.get("fineli_id")
+                and mapping.get("confidence") in {"high", "manual"}
+            ):
+                try:
+                    food = fineli_client.get_food(str(mapping["fineli_id"]))
+                    apply_fineli_match_to_ingredient(ing, food, db)
+                except FineliFoodNotFound:
+                    pass
+            ingredient_models.append(ing)
+    finally:
+        fineli_client.close()
+
     recipe = models.Recipe(
         title=meal["name"],
         description="",
         instructions=meal.get("instructions") or "",
-        ingredients=[
-            models.Ingredient(name=item["name"], amount=item.get("amount") or "")
-            for item in meal.get("ingredients", [])
-        ],
+        ingredients=ingredient_models,
         source=models.RecipeSource(
             provider="TheMealDB",
             external_id=external_id,

@@ -4,7 +4,11 @@ from sqlalchemy.orm import Session
 from app import schemas
 from app.database import get_db
 from app.integrations.fineli.factory import get_fineli_client
-from app.integrations.fineli.matching import candidate_rank, suggestion_queries
+from app.integrations.fineli.matching import (
+    candidate_rank,
+    lookup_mapping,
+    suggestion_queries,
+)
 from app.integrations.fineli.local_client import FineliFoodNotFound
 
 router = APIRouter(prefix="/ingredients", tags=["ingredients"])
@@ -33,14 +37,27 @@ def suggest_ingredients(
     client = get_fineli_client(db)
     try:
         candidates_by_id = {}
+        mapped_id: str | None = None
+        mapping = lookup_mapping(db, query)
+        if mapping and mapping.get("fineli_id"):
+            try:
+                mapped_food = client.get_food(str(mapping["fineli_id"]))
+                candidates_by_id[mapped_food["id"]] = mapped_food
+                mapped_id = mapped_food["id"]
+            except FineliFoodNotFound:
+                pass
         for search_term in queries:
             for food in client.search_foods(search_term):
                 candidates_by_id.setdefault(food["id"], food)
         search_term = queries[0]
-        return sorted(
+        ranked = sorted(
             candidates_by_id.values(),
-            key=lambda food: candidate_rank(food, search_term),
-        )[:5]
+            key=lambda food: (
+                0 if food["id"] == mapped_id else 1,
+                candidate_rank(food, search_term),
+            ),
+        )
+        return ranked[:5]
     finally:
         client.close()
 
