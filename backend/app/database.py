@@ -1,10 +1,13 @@
 from collections.abc import Generator
+import logging
 
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
 engine = create_engine(settings.database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
@@ -93,6 +96,10 @@ def ensure_fineli_search_indexes(db_engine=engine) -> None:
                     "ON fineli_foods USING gin (name_fi gin_trgm_ops)"
                 )
             )
-    except Exception:
+    except SQLAlchemyError as exc:
         # Non-superuser PostgreSQL roles may not allow CREATE EXTENSION; ILIKE search still works.
+        logger.warning(
+            "Could not create PostgreSQL trigram search indexes; falling back to ILIKE: %s",
+            exc,
+        )
         return

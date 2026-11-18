@@ -122,10 +122,31 @@ def test_import_mappings_and_auto_match_workflow(client, tmp_path: Path, monkeyp
     )
     imported = client.post("/api/external-recipes/id/88888/import")
     assert imported.status_code == 201
-    imported_ing = imported.json()["ingredients"][0]
+    imported_recipe = imported.json()
+    imported_ing = imported_recipe["ingredients"][0]
     assert imported_ing["fineli_id"] == "1"
     assert imported_ing["quantity"] == 12.5
     assert imported_ing["unit"] == "g"
+
+    updated = client.put(
+        f"/api/recipes/{imported_recipe['id']}/ingredients",
+        json={
+            "ingredients": [
+                {
+                    "name": "White Sugar",
+                    "amount": "2 tbsp",
+                    "quantity": None,
+                    "unit": None,
+                    "fineli_id": "1",
+                }
+            ]
+        },
+    )
+    assert updated.status_code == 200
+    updated_ing = updated.json()["ingredients"][0]
+    assert updated_ing["quantity"] == 25.0
+    assert updated_ing["unit"] == "g"
+    assert updated_ing["conversion_status"] == "estimated"
 
 
 def test_search_prefers_basic_food_over_composite_dish(client, tmp_path: Path) -> None:
