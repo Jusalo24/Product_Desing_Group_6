@@ -13,6 +13,10 @@ from app.integrations.fineli.measure import convert_measure_to_grams
         ("1½ kg", 1500),
         ("4 oz", pytest.approx(113.398, rel=1e-3)),
         ("1 lb", pytest.approx(453.592, rel=1e-3)),
+        ("750g piece", 750),
+        ("750 g pieces", 750),
+        ("100g fine", 100),
+        ("100 g fine", 100),
         ("200g, drained", 200),
         ("1 can (400g)", 400),
     ],
@@ -96,6 +100,19 @@ def test_converts_countable_pieces_cloves_and_bare_numbers() -> None:
     assert default_piece is not None
     assert default_piece.grams == pytest.approx(220.0)
     assert default_piece.status == "estimated"
+
+
+def test_estimates_chicken_breast_count_with_pounding_note() -> None:
+    result = convert_measure_to_grams(
+        "4 pounded to 1cm thickness",
+        [],
+        default_weight_g=175.0,
+        ingredient_name="chicken breast",
+    )
+
+    assert result is not None
+    assert result.grams == pytest.approx(700.0)
+    assert result.status == "estimated"
 
 
 @pytest.mark.parametrize(

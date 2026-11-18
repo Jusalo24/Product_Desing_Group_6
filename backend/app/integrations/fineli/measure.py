@@ -89,6 +89,7 @@ _TRAILING_MODIFIERS = {
     "sifted",
     "packed",
     "loosely",
+    "fine",
     "firmly",
     "heaped",
     "heaping",
@@ -303,6 +304,10 @@ _MEASURE_SINGLE = re.compile(
     re.IGNORECASE,
 )
 _PAREN_MEASURE = re.compile(r"\(([^)]+)\)")
+_POUNDED_THICKNESS_NOTE = re.compile(
+    r"\bpounded\s+to\s+\d+(?:[.,]\d+)?\s*cm\s+thickness\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -341,12 +346,19 @@ def _normalized_text(value: str) -> str:
 def _clean_unit(raw_unit: str) -> str:
     # Drop anything after a comma (e.g. "tbsp, finely chopped")
     base = raw_unit.split(",", 1)[0].strip()
+    base = _POUNDED_THICKNESS_NOTE.sub("", base)
     # Remove remaining parenthetical remarks
     base = re.sub(r"\([^)]*\)", " ", base)
     normalized = _normalized_text(base).strip(".")
     if not normalized:
         return ""
     tokens = normalized.split()
+    if (
+        len(tokens) == 2
+        and tokens[0] in _DIRECT_MASS_FACTORS
+        and tokens[1] in {"piece", "pieces"}
+    ):
+        tokens.pop()
     while len(tokens) > 1 and tokens[-1] in _TRAILING_MODIFIERS:
         tokens.pop()
     if len(tokens) == 1 and tokens[0] in _TRAILING_MODIFIERS:

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -124,13 +124,16 @@ describe("RecipeDetailPage ingredient matching", () => {
   beforeEach(() => {
     nutritionForPage = null;
     fetchMock.mockReset();
-    fetchMock.mockImplementation(async (input) => {
+    fetchMock.mockImplementation(async (input, init) => {
       const url = new URL(String(input), "http://localhost");
       if (url.pathname === "/api/recipes/3") return jsonResponse(recipe);
       if (url.pathname === "/api/recipes/3/nutrition") {
         return nutritionForPage
           ? jsonResponse(nutritionForPage)
           : jsonResponse({}, 404);
+      }
+      if (url.pathname === "/api/recipes/3/nutrition/recalculate" && init?.method === "POST") {
+        return jsonResponse(partialEstimate);
       }
       if (url.pathname === "/api/ingredients/suggestions") return jsonResponse([candidate]);
       if (url.pathname.endsWith("/nutrition-source")) {
@@ -166,11 +169,28 @@ describe("RecipeDetailPage ingredient matching", () => {
     await user.click(screen.getByRole("button", { name: "Use Olive oil" }));
 
     expect(await screen.findByText("Fineli match: Olive oil")).toBeVisible();
+    expect(screen.queryByText("No matching Fineli foods found.")).not.toBeInTheDocument();
+    expect(await screen.findByText("Coverage: 1 of 2 ingredients (50%)")).toBeVisible();
     const matchCall = fetchMock.mock.calls.find(([input, init]) =>
       String(input).endsWith("/nutrition-source") && init?.method === "PUT",
     );
     expect(matchCall).toBeDefined();
     expect(JSON.parse(String(matchCall?.[1]?.body))).toEqual({ fineli_id: "100" });
+    expect(
+      fetchMock.mock.calls.filter(
+        ([input, init]) =>
+          String(input).endsWith("/nutrition/recalculate") && init?.method === "POST",
+      ),
+    ).toHaveLength(1);
+    const matchCallIndex = fetchMock.mock.calls.findIndex(
+      ([input, init]) =>
+        String(input).endsWith("/nutrition-source") && init?.method === "PUT",
+    );
+    const recalculateCallIndex = fetchMock.mock.calls.findIndex(
+      ([input, init]) =>
+        String(input).endsWith("/nutrition/recalculate") && init?.method === "POST",
+    );
+    expect(recalculateCallIndex).toBeGreaterThan(matchCallIndex);
   });
 
   it("shows partial nutrition, coverage, per-serving totals, and skipped reasons", async () => {
@@ -247,6 +267,9 @@ describe("RecipeDetailPage ingredient matching", () => {
       if (url.pathname === "/api/recipes/3/ingredients/auto-match" && init?.method === "POST") {
         return jsonResponse(autoMatchedRecipe);
       }
+      if (url.pathname === "/api/recipes/3/nutrition/recalculate" && init?.method === "POST") {
+        return jsonResponse(partialEstimate);
+      }
       if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse({}, 404);
       return jsonResponse({}, 404);
     });
@@ -261,7 +284,23 @@ describe("RecipeDetailPage ingredient matching", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Auto-match ingredients" }));
 
-    expect(await screen.findByText(/Fineli match: Olive oil/)).toBeVisible();
+    expect(
+      await within(screen.getByRole("region", { name: "Ingredients" })).findByText(
+        /Fineli match: Olive oil/,
+      ),
+    ).toBeVisible();
     expect(screen.getByText(/13\.5 g \(estimated\)/)).toBeVisible();
+    const calls = fetchMock.mock.calls.map(([input, init]) => ({
+      path: String(input),
+      method: init?.method,
+    }));
+    const autoMatchCallIndex = calls.findIndex(
+      (call) => call.path.endsWith("/auto-match") && call.method === "POST",
+    );
+    const recalculateCallIndices = calls.flatMap((call, index) =>
+      call.path.endsWith("/nutrition/recalculate") && call.method === "POST" ? [index] : [],
+    );
+    expect(recalculateCallIndices).toHaveLength(1);
+    expect(recalculateCallIndices[0]).toBeGreaterThan(autoMatchCallIndex);
   });
 });

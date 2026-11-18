@@ -53,7 +53,7 @@ describe("MealSearchPage", () => {
 
   it("searches meals and displays the returned recipe details", async () => {
     const user = userEvent.setup();
-    renderPage(`/?q=${encodeURIComponent("chicken & rice")}`);
+    const { container } = renderPage(`/?q=${encodeURIComponent("chicken & rice")}`);
 
     expect(await screen.findByRole("heading", { name: meal.name })).toBeVisible();
     const [requestedUrl] = fetchMock.mock.calls[0];
@@ -64,6 +64,9 @@ describe("MealSearchPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Näytä resepti" }));
 
+    expect(container.querySelector(".selected-meal")?.nextElementSibling).toBe(
+      screen.getByRole("region", { name: "Hakutulokset" }),
+    );
     expect(screen.getByText("1 pound penne rigate")).toBeVisible();
     expect(screen.getByText("olive oil")).toBeVisible();
     expect(screen.getByText(/Boil the pasta\./)).toBeVisible();

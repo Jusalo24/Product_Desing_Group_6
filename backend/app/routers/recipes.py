@@ -255,7 +255,7 @@ def match_ingredient(
 
 @router.post("/{recipe_id}/ingredients/auto-match", response_model=schemas.RecipeRead)
 def auto_match_ingredients(recipe_id: int, db: Session = Depends(get_db)):
-    """Auto-match unmatched ingredients using ingredient_mappings or exact Fineli candidates."""
+    """Match unmapped ingredients and fill quantities for existing matches when possible."""
     recipe = db.get(models.Recipe, recipe_id)
     if recipe is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
@@ -265,6 +265,26 @@ def auto_match_ingredients(recipe_id: int, db: Session = Depends(get_db)):
         changed = False
         for ingredient in recipe.ingredients:
             if ingredient.fineli_id:
+                if ingredient.quantity is not None:
+                    continue
+                try:
+                    food = client.get_food(ingredient.fineli_id)
+                except FineliFoodNotFound:
+                    continue
+
+                previous_state = (
+                    ingredient.fineli_name,
+                    ingredient.quantity,
+                    ingredient.unit,
+                    ingredient.conversion_status,
+                )
+                apply_fineli_match_to_ingredient(ingredient, food, db)
+                changed = changed or previous_state != (
+                    ingredient.fineli_name,
+                    ingredient.quantity,
+                    ingredient.unit,
+                    ingredient.conversion_status,
+                )
                 continue
             mapping = lookup_mapping(db, ingredient.name)
             food = None
