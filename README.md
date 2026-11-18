@@ -211,6 +211,13 @@ Run the tests:
 python -m pytest -q
 ```
 
+To include a backend coverage report:
+
+```powershell
+python -m pip install pytest-cov
+python -m pytest --cov=app --cov-report=term-missing -q
+```
+
 ### 3. Frontend
 
 Open another terminal in the repository root and switch to `frontend/`:
