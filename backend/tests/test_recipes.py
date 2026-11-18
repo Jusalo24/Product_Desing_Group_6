@@ -1,6 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.integrations.fineli.local_client import (
+    FineliFoodNotFound,
+    LocalFineliClient,
+)
+
 
 def test_health_returns_ok(client: TestClient) -> None:
     """The health endpoint responds with its expected status payload."""
@@ -139,3 +144,194 @@ def test_ingredients_can_be_edited(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json()["ingredients"][0]["amount"] == "0.5 kg"
     assert response.json()["ingredients"][0]["unit"] == "kg"
+
+
+def test_ingredient_edit_reconciles_explicit_quantity_with_amount(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        LocalFineliClient,
+        "get_food",
+        lambda self, food_id: {
+            "id": food_id,
+            "name": "Oats",
+            "units": [],
+        },
+    )
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Porridge",
+            "ingredients": [
+                {
+                    "name": "Oats",
+                    "amount": "100 g",
+                    "quantity": 100,
+                    "unit": "g",
+                    "fineli_id": "food-1",
+                }
+            ],
+        },
+    ).json()
+
+    response = client.put(
+        f"/api/recipes/{created['id']}/ingredients",
+        json={
+            "ingredients": [
+                {
+                    "name": "Oats",
+                    "amount": "100 g",
+                    "quantity": 200,
+                    "unit": "g",
+                    "fineli_id": "food-1",
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    ingredient = response.json()["ingredients"][0]
+    assert ingredient["quantity"] == 100
+    assert ingredient["unit"] == "g"
+    assert ingredient["conversion_status"] == "exact"
+
+
+def test_ingredient_edit_clears_match_and_quantity_when_unmatched(
+    client: TestClient,
+) -> None:
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Plain water",
+            "ingredients": [
+                {
+                    "name": "Water",
+                    "amount": "1 l",
+                    "quantity": 1000,
+                    "unit": "g",
+                    "fineli_id": "food-1",
+                }
+            ],
+        },
+    ).json()
+
+    response = client.put(
+        f"/api/recipes/{created['id']}/ingredients",
+        json={
+            "ingredients": [
+                {
+                    "name": "Water",
+                    "amount": "1 l",
+                    "quantity": 1000,
+                    "unit": "g",
+                    "fineli_id": None,
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    ingredient = response.json()["ingredients"][0]
+    assert ingredient["fineli_id"] is None
+    assert ingredient["fineli_name"] is None
+    assert ingredient["quantity"] is None
+    assert ingredient["unit"] is None
+    assert ingredient["conversion_status"] == "unmatched"
+
+
+@pytest.mark.parametrize(
+    ("amount", "quantity", "unit", "expected_status"),
+    [
+        ("2 tbsp", None, None, "estimated"),
+        ("to taste", None, None, "negligible"),
+    ],
+)
+def test_ingredient_edit_recalculates_quantified_and_negligible_amounts(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    amount: str,
+    quantity: float | None,
+    unit: str | None,
+    expected_status: str,
+) -> None:
+    monkeypatch.setattr(
+        LocalFineliClient,
+        "get_food",
+        lambda self, food_id: {
+            "id": food_id,
+            "name": "Olive oil",
+            "units": [{"code": "RKL", "name": "tablespoon", "grams": 15}],
+        },
+    )
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Oil",
+            "ingredients": [{"name": "Olive oil", "amount": "1 tbsp"}],
+        },
+    ).json()
+
+    response = client.put(
+        f"/api/recipes/{created['id']}/ingredients",
+        json={
+            "ingredients": [
+                {
+                    "name": "Olive oil",
+                    "amount": amount,
+                    "quantity": quantity,
+                    "unit": unit,
+                    "fineli_id": "food-1",
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    ingredient = response.json()["ingredients"][0]
+    assert ingredient["conversion_status"] == expected_status
+    if expected_status == "estimated":
+        assert ingredient["quantity"] == 30
+        assert ingredient["unit"] == "g"
+    else:
+        assert ingredient["quantity"] is None
+        assert ingredient["unit"] is None
+
+
+def test_ingredient_edit_handles_missing_mapped_fineli_food(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def missing_food(self, food_id: str) -> dict:
+        raise FineliFoodNotFound(food_id)
+
+    monkeypatch.setattr(LocalFineliClient, "get_food", missing_food)
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Missing source",
+            "ingredients": [{"name": "Mystery", "amount": "100 g"}],
+        },
+    ).json()
+
+    response = client.put(
+        f"/api/recipes/{created['id']}/ingredients",
+        json={
+            "ingredients": [
+                {
+                    "name": "Mystery",
+                    "amount": "100 g",
+                    "quantity": None,
+                    "unit": None,
+                    "fineli_id": "deleted-food",
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    ingredient = response.json()["ingredients"][0]
+    assert ingredient["fineli_name"] is None
+    assert ingredient["quantity"] is None
+    assert ingredient["unit"] is None
+    assert ingredient["conversion_status"] == "unknown"
