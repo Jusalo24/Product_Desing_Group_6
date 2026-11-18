@@ -171,6 +171,13 @@ The staging and import commands display progress while processing the data.
    python -m app.scripts.import_fineli
    ```
 
+4. Optionally (recommended), import the curated TheMealDB-to-Fineli ingredient mappings into
+   the `ingredient_mappings` table from `backend/`:
+
+   ```powershell
+   python -m app.scripts.import_mappings
+   ```
+
 The backend uses the imported local dataset for Fineli lookups and does not rely on
 Fineli's online API. Re-running the import safely replaces the previous Fineli dataset.
 Data: Fineli, Finnish Institute for Health and Welfare (THL), CC BY 4.0.

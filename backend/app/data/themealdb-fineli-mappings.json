@@ -50,7 +50,7 @@
     "fineli_id": "929",
     "search_hint": "apple cider vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Wine vinegar is the closest available generic vinegar type in Fineli."
   },
   {
@@ -77,7 +77,7 @@
     "fineli_id": "352",
     "search_hint": "baby plum tomato",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic raw tomato is the closest match."
   },
   {
@@ -104,7 +104,7 @@
     "fineli_id": "929",
     "search_hint": "vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Wine vinegar is the nearest match for balsamic."
   },
   {
@@ -128,11 +128,11 @@
   {
     "mealdb_name": "basmati rice",
     "raw_name": "Basmati Rice",
-    "fineli_id": null,
-    "search_hint": "basmati rice",
+    "fineli_id": "156",
+    "search_hint": "rice white",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No specific Basmati or white rice found in candidates; brown rice is not a suitable substitute."
+    "confidence": "manual",
+    "notes": "White rice in Fineli."
   },
   {
     "mealdb_name": "bay leaf",
@@ -164,11 +164,11 @@
   {
     "mealdb_name": "beef fillet",
     "raw_name": "Beef Fillet",
-    "fineli_id": null,
-    "search_hint": "beef fillet",
+    "fineli_id": "718",
+    "search_hint": "beef round",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No direct match for beef fillet; listed beef cuts are different parts."
+    "confidence": "manual",
+    "notes": "Lean raw beef cut."
   },
   {
     "mealdb_name": "beef gravy",
@@ -182,11 +182,11 @@
   {
     "mealdb_name": "beef stock",
     "raw_name": "Beef Stock",
-    "fineli_id": null,
-    "search_hint": "beef stock",
+    "fineli_id": "38",
+    "search_hint": "meat bouillon",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No generic beef stock found; dishes provided are unsuitable."
+    "confidence": "manual",
+    "notes": "Meat bouillon in Fineli."
   },
   {
     "mealdb_name": "bicarbonate of soda",
@@ -227,29 +227,29 @@
   {
     "mealdb_name": "borlotti bean",
     "raw_name": "Borlotti Beans",
-    "fineli_id": null,
-    "search_hint": "borlottipapu",
+    "fineli_id": "34380",
+    "search_hint": "bean white bean",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Dried white/navy bean equivalent."
   },
   {
     "mealdb_name": "bowtie pasta",
     "raw_name": "Bowtie Pasta",
-    "fineli_id": null,
-    "search_hint": "bowtie pasta",
+    "fineli_id": "121",
+    "search_hint": "pasta spaghetti macaroni",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No plain pasta match available."
+    "confidence": "manual",
+    "notes": "Dried pasta in Fineli."
   },
   {
     "mealdb_name": "bramley apple",
     "raw_name": "Bramley Apples",
-    "fineli_id": null,
-    "search_hint": "bramley apple",
-    "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No raw apple match found, only processed products."
+    "fineli_id": "28916",
+    "search_hint": "apple",
+    "default_weight_g": 150.0,
+    "confidence": "manual",
+    "notes": "Apple in Fineli."
   },
   {
     "mealdb_name": "brandy",
@@ -266,7 +266,7 @@
     "fineli_id": "1036",
     "search_hint": "bread",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Rye bread is a common Finnish bread variety."
   },
   {
@@ -311,8 +311,8 @@
     "fineli_id": "1",
     "search_hint": "sugar",
     "default_weight_g": null,
-    "confidence": "medium",
-    "notes": "Generic sugar is the closest match."
+    "confidence": "manual",
+    "notes": "Sugar equivalent in Fineli."
   },
   {
     "mealdb_name": "butter",
@@ -353,11 +353,11 @@
   {
     "mealdb_name": "cannellini bean",
     "raw_name": "Cannellini Beans",
-    "fineli_id": null,
-    "search_hint": "cannellini bean",
+    "fineli_id": "34380",
+    "search_hint": "bean white bean",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No matching legume found."
+    "confidence": "manual",
+    "notes": "Dried white/navy bean equivalent."
   },
   {
     "mealdb_name": "cardamom",
@@ -407,11 +407,11 @@
   {
     "mealdb_name": "cayenne pepper",
     "raw_name": "Cayenne Pepper",
-    "fineli_id": null,
-    "search_hint": "cayenne pepper",
+    "fineli_id": "11182",
+    "search_hint": "paprika powder",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No direct match for cayenne pepper in candidates (only black/white pepper and sweet red pepper)."
+    "confidence": "manual",
+    "notes": "Dried chili/paprika spice equivalent."
   },
   {
     "mealdb_name": "celeriac",
@@ -434,11 +434,11 @@
   {
     "mealdb_name": "celery salt",
     "raw_name": "Celery Salt",
-    "fineli_id": null,
-    "search_hint": "celery salt",
+    "fineli_id": "30",
+    "search_hint": "salt",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No celery salt candidate available."
+    "confidence": "manual",
+    "notes": "Salt in Fineli."
   },
   {
     "mealdb_name": "challot",
@@ -455,7 +455,7 @@
     "fineli_id": "204",
     "search_hint": "charlotte potato",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "New potato is the closest raw potato type among candidates."
   },
   {
@@ -470,20 +470,20 @@
   {
     "mealdb_name": "cheese",
     "raw_name": "Cheese",
-    "fineli_id": "1554",
-    "search_hint": "cheese",
+    "fineli_id": "33449",
+    "search_hint": "cheese average",
     "default_weight_g": null,
-    "confidence": "medium",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Average cheese in Fineli."
   },
   {
     "mealdb_name": "cheese curd",
     "raw_name": "Cheese Curds",
     "fineli_id": "33449",
-    "search_hint": "cheese curd",
+    "search_hint": "cheese average",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No exact cheese curd match; using general average cheese."
+    "confidence": "manual",
+    "notes": "Average cheese in Fineli."
   },
   {
     "mealdb_name": "cherry tomato",
@@ -497,11 +497,11 @@
   {
     "mealdb_name": "chestnut mushroom",
     "raw_name": "Chestnut Mushroom",
-    "fineli_id": null,
-    "search_hint": "chestnut mushroom",
+    "fineli_id": "345",
+    "search_hint": "champignon",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Candidates only include oyster, shiitake, and general mushrooms, no chestnut mushrooms."
+    "confidence": "manual",
+    "notes": "Fresh champignon mushroom."
   },
   {
     "mealdb_name": "chicken breast",
@@ -536,7 +536,7 @@
     "fineli_id": "11563",
     "search_hint": "chicken thigh",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Chicken leg and thigh with skin is the closest whole raw cut."
   },
   {
@@ -552,10 +552,10 @@
     "mealdb_name": "chili powder",
     "raw_name": "Chili Powder",
     "fineli_id": "11182",
-    "search_hint": "chili powder",
+    "search_hint": "paprika powder",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Paprika powder is the closest spice powder available in candidates."
+    "confidence": "manual",
+    "notes": "Dried chili/paprika spice equivalent."
   },
   {
     "mealdb_name": "chilled butter",
@@ -578,11 +578,11 @@
   {
     "mealdb_name": "chilli powder",
     "raw_name": "Chilli Powder",
-    "fineli_id": "74",
-    "search_hint": "chilli powder",
+    "fineli_id": "11182",
+    "search_hint": "paprika powder",
     "default_weight_g": null,
-    "confidence": "medium",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Dried chili/paprika spice equivalent."
   },
   {
     "mealdb_name": "chinese broccoli",
@@ -590,7 +590,7 @@
     "fineli_id": "324",
     "search_hint": "chinese broccoli",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Broccoli is the closest candidate for Chinese broccoli."
   },
   {
@@ -599,7 +599,7 @@
     "fineli_id": "6",
     "search_hint": "chocolate chip",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Chocolate, average is the closest raw/baking form of chocolate."
   },
   {
@@ -689,7 +689,7 @@
     "fineli_id": "1",
     "search_hint": "coco sugar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Sugar is the closest basic sweetening ingredient."
   },
   {
@@ -722,11 +722,11 @@
   {
     "mealdb_name": "colby jack cheese",
     "raw_name": "Colby Jack Cheese",
-    "fineli_id": null,
-    "search_hint": "colby jack cheese",
+    "fineli_id": "33449",
+    "search_hint": "cheese average",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No specific colby jack candidate available."
+    "confidence": "manual",
+    "notes": "Average cheese in Fineli."
   },
   {
     "mealdb_name": "cold water",
@@ -797,7 +797,7 @@
     "fineli_id": "11136",
     "search_hint": "cream",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Selected general cream candidate."
   },
   {
@@ -815,7 +815,7 @@
     "fineli_id": "29228",
     "search_hint": "cubed feta cheese",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Best available basic feta cheese candidate."
   },
   {
@@ -830,20 +830,20 @@
   {
     "mealdb_name": "cumin",
     "raw_name": "Cumin",
-    "fineli_id": null,
-    "search_hint": "juustokumina",
+    "fineli_id": "11177",
+    "search_hint": "pepper black pepper",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No cumin spice in candidates."
+    "confidence": "manual",
+    "notes": "Generic ground spice equivalent (cumin not in Fineli)."
   },
   {
     "mealdb_name": "cumin seed",
     "raw_name": "Cumin Seeds",
-    "fineli_id": null,
-    "search_hint": "cumin seed",
+    "fineli_id": "11177",
+    "search_hint": "pepper black pepper",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No cumin seeds in candidates."
+    "confidence": "manual",
+    "notes": "Generic ground spice equivalent (cumin not in Fineli)."
   },
   {
     "mealdb_name": "curry powder",
@@ -860,7 +860,7 @@
     "fineli_id": "1",
     "search_hint": "dark brown sugar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest available sugar."
   },
   {
@@ -869,7 +869,7 @@
     "fineli_id": "1",
     "search_hint": "fariinisokeri",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest available sugar."
   },
   {
@@ -887,7 +887,7 @@
     "fineli_id": "1",
     "search_hint": "sugar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest available sugar."
   },
   {
@@ -1031,7 +1031,7 @@
     "fineli_id": "121",
     "search_hint": "macaroni pasta",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General pasta/macaroni is the closest raw pasta option."
   },
   {
@@ -1073,11 +1073,11 @@
   {
     "mealdb_name": "fish sauce",
     "raw_name": "Fish Sauce",
-    "fineli_id": null,
-    "search_hint": "fish sauce",
+    "fineli_id": "31",
+    "search_hint": "soy sauce",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No direct match for Asian-style fish sauce in provided list."
+    "confidence": "manual",
+    "notes": "Salty fermented sauce equivalent."
   },
   {
     "mealdb_name": "flaked almond",
@@ -1100,11 +1100,11 @@
   {
     "mealdb_name": "flour",
     "raw_name": "Flour",
-    "fineli_id": null,
-    "search_hint": "flour",
+    "fineli_id": "110",
+    "search_hint": "wheat flour",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Generic flour not specified; choosing the most common culinary type (all-purpose/wheat) would be ideal but not in list."
+    "confidence": "manual",
+    "notes": "Wheat flour in Fineli."
   },
   {
     "mealdb_name": "flour tortilla",
@@ -1136,11 +1136,11 @@
   {
     "mealdb_name": "french lentil",
     "raw_name": "French Lentils",
-    "fineli_id": null,
-    "search_hint": "french lentil",
+    "fineli_id": "399",
+    "search_hint": "lentils",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Provided candidates are french fries or soup; no lentils match."
+    "confidence": "manual",
+    "notes": "Dried green/brown lentils in Fineli."
   },
   {
     "mealdb_name": "thyme",
@@ -1148,7 +1148,7 @@
     "fineli_id": "11194",
     "search_hint": "thyme",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Only dried thyme available in list."
   },
   {
@@ -1211,7 +1211,7 @@
     "fineli_id": "393",
     "search_hint": "garlic powder",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest match is raw garlic as no powder was provided."
   },
   {
@@ -1226,11 +1226,11 @@
   {
     "mealdb_name": "ghee",
     "raw_name": "Ghee",
-    "fineli_id": null,
-    "search_hint": "ghee",
+    "fineli_id": "598",
+    "search_hint": "butter oil",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No direct match for Ghee in the provided candidates."
+    "confidence": "manual",
+    "notes": "100% butter oil / clarified butter in Fineli."
   },
   {
     "mealdb_name": "ginger",
@@ -1256,7 +1256,7 @@
     "fineli_id": "33022",
     "search_hint": "ginger garlic paste",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest is the ginger paste component."
   },
   {
@@ -1274,7 +1274,7 @@
     "fineli_id": "3",
     "search_hint": "golden syrup",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic syrup is the only option."
   },
   {
@@ -1301,7 +1301,7 @@
     "fineli_id": "352",
     "search_hint": "grape tomato",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic tomato; grape specific variety not available."
   },
   {
@@ -1346,7 +1346,7 @@
     "fineli_id": "399",
     "search_hint": "green red lentil",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Selecting green/brown lentils as the base ingredient."
   },
   {
@@ -1370,11 +1370,11 @@
   {
     "mealdb_name": "ground cumin",
     "raw_name": "Ground Cumin",
-    "fineli_id": null,
-    "search_hint": "ground cumin",
+    "fineli_id": "11177",
+    "search_hint": "pepper black pepper",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No match for cumin in provided candidates (only ginger)."
+    "confidence": "manual",
+    "notes": "Generic ground spice equivalent (cumin not in Fineli)."
   },
   {
     "mealdb_name": "ground ginger",
@@ -1391,7 +1391,7 @@
     "fineli_id": "691",
     "search_hint": "gruyere",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Emmental is the closest available Swiss-style cheese substitute."
   },
   {
@@ -1406,11 +1406,11 @@
   {
     "mealdb_name": "harissa spice",
     "raw_name": "Harissa Spice",
-    "fineli_id": null,
-    "search_hint": "harissa",
+    "fineli_id": "11182",
+    "search_hint": "paprika powder",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No relevant match found (hare is meat)."
+    "confidence": "manual",
+    "notes": "Chili/paprika spice equivalent."
   },
   {
     "mealdb_name": "heavy cream",
@@ -1442,11 +1442,11 @@
   {
     "mealdb_name": "hot beef stock",
     "raw_name": "Hot Beef Stock",
-    "fineli_id": null,
-    "search_hint": "hot beef stock",
+    "fineli_id": "38",
+    "search_hint": "meat bouillon",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Beef heart is not a suitable substitute for stock."
+    "confidence": "manual",
+    "notes": "Meat bouillon in Fineli."
   },
   {
     "mealdb_name": "hotsauce",
@@ -1469,11 +1469,11 @@
   {
     "mealdb_name": "italian fennel sausage",
     "raw_name": "Italian Fennel Sausages",
-    "fineli_id": null,
-    "search_hint": "italian fennel sausage",
+    "fineli_id": "30369",
+    "search_hint": "sausage",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Italian stew is not an ingredient substitute for sausage."
+    "confidence": "manual",
+    "notes": "Fresh sausage in Fineli."
   },
   {
     "mealdb_name": "italian seasoning",
@@ -1490,17 +1490,17 @@
     "fineli_id": "33484",
     "search_hint": "jalapeno",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Pickled jalapenos are the best match available."
   },
   {
     "mealdb_name": "jasmine rice",
     "raw_name": "Jasmine Rice",
-    "fineli_id": null,
-    "search_hint": "jasmine rice",
+    "fineli_id": "156",
+    "search_hint": "rice white",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only ready meals are provided, no plain jasmine rice."
+    "confidence": "manual",
+    "notes": "White rice in Fineli."
   },
   {
     "mealdb_name": "jerusalem artichoke",
@@ -1526,7 +1526,7 @@
     "fineli_id": "35221",
     "search_hint": "unikonsiemen",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Khus Khus refers to poppy seeds."
   },
   {
@@ -1541,11 +1541,11 @@
   {
     "mealdb_name": "kosher salt",
     "raw_name": "Kosher Salt",
-    "fineli_id": null,
-    "search_hint": "karkea suola",
+    "fineli_id": "30",
+    "search_hint": "salt",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No plain salt in candidates."
+    "confidence": "manual",
+    "notes": "Salt in Fineli."
   },
   {
     "mealdb_name": "lamb",
@@ -1577,11 +1577,11 @@
   {
     "mealdb_name": "lasagne sheet",
     "raw_name": "Lasagne Sheets",
-    "fineli_id": null,
-    "search_hint": "lasagne sheet",
+    "fineli_id": "121",
+    "search_hint": "pasta spaghetti macaroni",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only prepared lasagne dishes provided, no raw sheets."
+    "confidence": "manual",
+    "notes": "Dried pasta in Fineli."
   },
   {
     "mealdb_name": "lean beef",
@@ -1589,7 +1589,7 @@
     "fineli_id": "34201",
     "search_hint": "lean beef",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General lean beef."
   },
   {
@@ -1625,7 +1625,7 @@
     "fineli_id": "11048",
     "search_hint": "sitruunankuori",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Lemon without skin implies the flesh; no specific zest item."
   },
   {
@@ -1640,11 +1640,11 @@
   {
     "mealdb_name": "lime",
     "raw_name": "Lime",
-    "fineli_id": null,
-    "search_hint": "lime",
+    "fineli_id": "11048",
+    "search_hint": "lemon",
     "default_weight_g": 65.0,
-    "confidence": "low",
-    "notes": "No plain lime in candidates."
+    "confidence": "manual",
+    "notes": "Lemon equivalent (lime not in Fineli)."
   },
   {
     "mealdb_name": "little gem lettuce",
@@ -1652,7 +1652,7 @@
     "fineli_id": "330",
     "search_hint": "little gem lettuce",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General lettuce is the closest match."
   },
   {
@@ -1697,7 +1697,7 @@
     "fineli_id": "33021",
     "search_hint": "massaman curry paste",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest spice/curry paste available."
   },
   {
@@ -1724,7 +1724,7 @@
     "fineli_id": "689",
     "search_hint": "milk",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Standard cow's milk with typical 3.5% fat"
   },
   {
@@ -1748,11 +1748,11 @@
   {
     "mealdb_name": "monterey jack cheese",
     "raw_name": "Monterey Jack Cheese",
-    "fineli_id": null,
-    "search_hint": "monterey jack juusto",
+    "fineli_id": "33449",
+    "search_hint": "cheese average",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Average cheese in Fineli."
   },
   {
     "mealdb_name": "mozzarella ball",
@@ -1760,7 +1760,7 @@
     "fineli_id": "29239",
     "search_hint": "mozzarella ball",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Mozzarella cheese is the closest basic match"
   },
   {
@@ -1769,17 +1769,17 @@
     "fineli_id": "1",
     "search_hint": "muscovado sugar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General sugar is the closest available sweetener"
   },
   {
     "mealdb_name": "mushroom",
     "raw_name": "Mushrooms",
-    "fineli_id": "342",
-    "search_hint": "mushroom",
+    "fineli_id": "345",
+    "search_hint": "champignon",
     "default_weight_g": null,
-    "confidence": "medium",
-    "notes": "Basic raw mushrooms"
+    "confidence": "manual",
+    "notes": "Fresh champignon mushroom."
   },
   {
     "mealdb_name": "mustard",
@@ -1793,20 +1793,20 @@
   {
     "mealdb_name": "mustard powder",
     "raw_name": "Mustard Powder",
-    "fineli_id": null,
-    "search_hint": "mustard powder",
+    "fineli_id": "28",
+    "search_hint": "mustard",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only prepared mustard is available, no powder"
+    "confidence": "manual",
+    "notes": "Mustard in Fineli."
   },
   {
     "mealdb_name": "mustard seed",
     "raw_name": "Mustard Seeds",
-    "fineli_id": null,
-    "search_hint": "mustard seed",
+    "fineli_id": "28",
+    "search_hint": "mustard",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No mustard seeds in candidates, only prepared mustard"
+    "confidence": "manual",
+    "notes": "Mustard in Fineli."
   },
   {
     "mealdb_name": "nutmeg",
@@ -1823,7 +1823,7 @@
     "fineli_id": "536",
     "search_hint": "oil",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Olive oil as a standard culinary oil choice"
   },
   {
@@ -1856,11 +1856,11 @@
   {
     "mealdb_name": "orange zest",
     "raw_name": "Orange Zest",
-    "fineli_id": null,
-    "search_hint": "orange zest",
+    "fineli_id": "11045",
+    "search_hint": "orange",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No direct orange zest candidate available"
+    "confidence": "manual",
+    "notes": "Orange equivalent in Fineli."
   },
   {
     "mealdb_name": "oregano",
@@ -1874,11 +1874,11 @@
   {
     "mealdb_name": "oyster sauce",
     "raw_name": "Oyster Sauce",
-    "fineli_id": null,
-    "search_hint": "oyster sauce",
+    "fineli_id": "31",
+    "search_hint": "soy sauce",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No oyster sauce available, soy sauce is not a direct substitute"
+    "confidence": "manual",
+    "notes": "Savory Asian sauce equivalent."
   },
   {
     "mealdb_name": "paprika",
@@ -1886,7 +1886,7 @@
     "fineli_id": "11182",
     "search_hint": "paprika",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Paprika powder is the standard form intended"
   },
   {
@@ -1901,29 +1901,29 @@
   {
     "mealdb_name": "parmesan",
     "raw_name": "Parmesan",
-    "fineli_id": null,
-    "search_hint": "parmesan",
+    "fineli_id": "643",
+    "search_hint": "cheese hard cheese",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No parmesan cheese in candidates"
+    "confidence": "manual",
+    "notes": "Hard cheese equivalent in Fineli."
   },
   {
     "mealdb_name": "parmesan cheese",
     "raw_name": "Parmesan Cheese",
-    "fineli_id": null,
-    "search_hint": "parmesan cheese",
+    "fineli_id": "643",
+    "search_hint": "cheese hard cheese",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No direct parmesan cheese match in candidates"
+    "confidence": "manual",
+    "notes": "Hard cheese equivalent in Fineli."
   },
   {
     "mealdb_name": "parmigiano reggiano",
     "raw_name": "Parmigiano-reggiano",
-    "fineli_id": null,
-    "search_hint": "parmesan",
+    "fineli_id": "643",
+    "search_hint": "cheese hard cheese",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No parmigiano-reggiano candidate available"
+    "confidence": "manual",
+    "notes": "Hard cheese equivalent in Fineli."
   },
   {
     "mealdb_name": "peanut butter",
@@ -1964,11 +1964,11 @@
   {
     "mealdb_name": "pecorino",
     "raw_name": "Pecorino",
-    "fineli_id": null,
-    "search_hint": "pecorino juusto",
+    "fineli_id": "643",
+    "search_hint": "cheese hard cheese",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No pecorino cheese in candidates"
+    "confidence": "manual",
+    "notes": "Hard cheese equivalent in Fineli."
   },
   {
     "mealdb_name": "penne rigate",
@@ -1976,7 +1976,7 @@
     "fineli_id": "117",
     "search_hint": "macaroni pasta",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General pasta/macaroni is the closest raw pasta match"
   },
   {
@@ -2030,7 +2030,7 @@
     "fineli_id": "352",
     "search_hint": "plum tomato",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Mapped to generic raw tomato as no specific plum variety available."
   },
   {
@@ -2072,47 +2072,47 @@
   {
     "mealdb_name": "raspberry jam",
     "raw_name": "Raspberry Jam",
-    "fineli_id": null,
-    "search_hint": "raspberry jam",
+    "fineli_id": "11553",
+    "search_hint": "fruit jam",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No raspberry jam in candidates; mixed berry jam or puree are not direct substitutes."
+    "confidence": "manual",
+    "notes": "Fruit jam in Fineli."
   },
   {
     "mealdb_name": "raw king prawn",
     "raw_name": "Raw King Prawns",
-    "fineli_id": null,
-    "search_hint": "jättikatkaravun pyrstö",
+    "fineli_id": "835",
+    "search_hint": "shrimp",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Shrimp/prawn in Fineli."
   },
   {
     "mealdb_name": "red chilli flake",
     "raw_name": "Red Chilli Flakes",
-    "fineli_id": null,
-    "search_hint": "chilirouhe",
+    "fineli_id": "11182",
+    "search_hint": "paprika powder",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No chilli flakes available in candidates."
+    "confidence": "manual",
+    "notes": "Dried chili/paprika spice equivalent."
   },
   {
     "mealdb_name": "red chilli",
     "raw_name": "Red Chilli",
-    "fineli_id": null,
-    "search_hint": "red chilli",
-    "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No fresh red chilli in candidates."
+    "fineli_id": "31557",
+    "search_hint": "chili",
+    "default_weight_g": 15.0,
+    "confidence": "manual",
+    "notes": "Raw chili equivalent."
   },
   {
     "mealdb_name": "red chilli powder",
     "raw_name": "Red Chilli Powder",
-    "fineli_id": null,
-    "search_hint": "red chilli powder",
+    "fineli_id": "11182",
+    "search_hint": "paprika powder",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No chilli powder in candidates."
+    "confidence": "manual",
+    "notes": "Dried chili/paprika spice equivalent."
   },
   {
     "mealdb_name": "red onion",
@@ -2135,11 +2135,11 @@
   {
     "mealdb_name": "red pepper flake",
     "raw_name": "Red Pepper Flakes",
-    "fineli_id": null,
-    "search_hint": "red pepper flake",
+    "fineli_id": "11182",
+    "search_hint": "paprika powder",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No flakes/spice product available in candidates."
+    "confidence": "manual",
+    "notes": "Dried chili/paprika spice equivalent."
   },
   {
     "mealdb_name": "red wine",
@@ -2183,7 +2183,7 @@
     "fineli_id": "29055",
     "search_hint": "rice stick noodle",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General rice noodle category used."
   },
   {
@@ -2201,7 +2201,7 @@
     "fineli_id": "117",
     "search_hint": "rigatoni pasta",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General pasta entry used as no specific shape."
   },
   {
@@ -2243,11 +2243,11 @@
   {
     "mealdb_name": "sake",
     "raw_name": "Sake",
-    "fineli_id": null,
-    "search_hint": "sake",
+    "fineli_id": "925",
+    "search_hint": "white wine",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No alcoholic beverage match."
+    "confidence": "manual",
+    "notes": "Dry white wine equivalent."
   },
   {
     "mealdb_name": "salsa",
@@ -2273,7 +2273,7 @@
     "fineli_id": "500",
     "search_hint": "salted butter",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic butter; most Fineli butter is salted by default."
   },
   {
@@ -2282,8 +2282,8 @@
     "fineli_id": "30369",
     "search_hint": "sausage",
     "default_weight_g": null,
-    "confidence": "medium",
-    "notes": "Generic fresh sausage."
+    "confidence": "manual",
+    "notes": "Fresh sausage in Fineli."
   },
   {
     "mealdb_name": "sea salt",
@@ -2300,17 +2300,17 @@
     "fineli_id": "110",
     "search_hint": "wheat flour",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No self-raising flour match; wheat flour used."
+    "confidence": "manual",
+    "notes": "Wheat flour in Fineli."
   },
   {
     "mealdb_name": "semi skimmed milk",
     "raw_name": "Semi-skimmed Milk",
-    "fineli_id": null,
-    "search_hint": "semi skimmed milk",
+    "fineli_id": "684",
+    "search_hint": "milk 1 5 fat",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No matching semi-skimmed milk food item found in candidates."
+    "confidence": "manual",
+    "notes": "Semi-skimmed milk 1.5% fat in Fineli."
   },
   {
     "mealdb_name": "sesame seed",
@@ -2327,7 +2327,7 @@
     "fineli_id": "335",
     "search_hint": "onion",
     "default_weight_g": 30.0,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General onion chosen as closest basic food for shallots."
   },
   {
@@ -2345,7 +2345,7 @@
     "fineli_id": "11182",
     "search_hint": "smoked paprika",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Paprika powder is the closest match for paprika spice."
   },
   {
@@ -2354,7 +2354,7 @@
     "fineli_id": "11182",
     "search_hint": "smoky paprika",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Paprika powder is the closest match for paprika spice."
   },
   {
@@ -2378,11 +2378,11 @@
   {
     "mealdb_name": "soya milk",
     "raw_name": "Soya Milk",
-    "fineli_id": null,
-    "search_hint": "soya milk",
+    "fineli_id": "31247",
+    "search_hint": "soya drink",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No soya milk found in the candidates."
+    "confidence": "manual",
+    "notes": "Plain soya drink in Fineli."
   },
   {
     "mealdb_name": "spaghetti",
@@ -2408,8 +2408,8 @@
     "fineli_id": "335",
     "search_hint": "onion",
     "default_weight_g": 15.0,
-    "confidence": "low",
-    "notes": "General onion is the only basic onion type available."
+    "confidence": "manual",
+    "notes": "Onion equivalent in Fineli."
   },
   {
     "mealdb_name": "squash",
@@ -2423,11 +2423,11 @@
   {
     "mealdb_name": "stir fry vegetable",
     "raw_name": "Stir-fry Vegetables",
-    "fineli_id": null,
-    "search_hint": "stir fry vegetable",
+    "fineli_id": "29048",
+    "search_hint": "wok vegetables",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No direct match for raw stir-fry vegetables."
+    "confidence": "manual",
+    "notes": "Fineli wok-vegetables mix."
   },
   {
     "mealdb_name": "strawberry",
@@ -2450,11 +2450,11 @@
   {
     "mealdb_name": "sultana",
     "raw_name": "Sultanas",
-    "fineli_id": null,
-    "search_hint": "sulttaanirusina",
+    "fineli_id": "428",
+    "search_hint": "raisin",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No sultanas or raisins listed directly (only chocolate raisin)."
+    "confidence": "manual",
+    "notes": "Raisins in Fineli."
   },
   {
     "mealdb_name": "sunflower oil",
@@ -2486,11 +2486,11 @@
   {
     "mealdb_name": "thai fish sauce",
     "raw_name": "Thai Fish Sauce",
-    "fineli_id": null,
-    "search_hint": "thai fish sauce",
+    "fineli_id": "31",
+    "search_hint": "soy sauce",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No fish sauce found in candidates."
+    "confidence": "manual",
+    "notes": "Salty fermented sauce equivalent."
   },
   {
     "mealdb_name": "thai green curry paste",
@@ -2507,7 +2507,7 @@
     "fineli_id": "33021",
     "search_hint": "thai red curry paste",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Mild curry paste/tikka masala spice paste is the closest available option."
   },
   {
@@ -2531,11 +2531,11 @@
   {
     "mealdb_name": "toor dal",
     "raw_name": "Toor Dal",
-    "fineli_id": null,
-    "search_hint": "tuur dal",
+    "fineli_id": "399",
+    "search_hint": "lentils",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Dried lentils in Fineli."
   },
   {
     "mealdb_name": "tuna",
@@ -2603,20 +2603,20 @@
   {
     "mealdb_name": "vegan butter",
     "raw_name": "Vegan Butter",
-    "fineli_id": null,
-    "search_hint": "vegan butter",
+    "fineli_id": "33882",
+    "search_hint": "margarine 80",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only dairy butter and cocoa/coconut butter available."
+    "confidence": "manual",
+    "notes": "80% fat vegetable margarine."
   },
   {
     "mealdb_name": "vegetable oil",
     "raw_name": "Vegetable Oil",
-    "fineli_id": null,
-    "search_hint": "vegetable oil",
+    "fineli_id": "535",
+    "search_hint": "rapeseed oil",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No vegetable oil in candidates."
+    "confidence": "manual",
+    "notes": "Neutral vegetable oil in Fineli."
   },
   {
     "mealdb_name": "vegetable stock",
@@ -2678,7 +2678,7 @@
     "fineli_id": "29156",
     "search_hint": "white chocolate chip",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "White chocolate used as closest match for white chocolate chips."
   },
   {
@@ -2693,11 +2693,11 @@
   {
     "mealdb_name": "white fish fillet",
     "raw_name": "White Fish Fillets",
-    "fineli_id": null,
-    "search_hint": "white fish fillet",
+    "fineli_id": "804",
+    "search_hint": "cod",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No suitable direct match for white fish fillets in candidates."
+    "confidence": "manual",
+    "notes": "Lean white fish (cod) in Fineli."
   },
   {
     "mealdb_name": "white vinegar",
@@ -2705,7 +2705,7 @@
     "fineli_id": "933",
     "search_hint": "white vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic vinegar is the closest available option."
   },
   {
@@ -2720,11 +2720,11 @@
   {
     "mealdb_name": "whole milk",
     "raw_name": "Whole Milk",
-    "fineli_id": null,
-    "search_hint": "whole milk",
+    "fineli_id": "689",
+    "search_hint": "milk 3 5 fat",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only composite dishes containing whole milk are present in candidates, no basic whole milk."
+    "confidence": "manual",
+    "notes": "Whole milk 3.5% fat in Fineli."
   },
   {
     "mealdb_name": "whole wheat",
@@ -2732,7 +2732,7 @@
     "fineli_id": "28905",
     "search_hint": "whole wheat",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Whole wheat flour is the closest basic ingredient available."
   },
   {
@@ -2741,7 +2741,7 @@
     "fineli_id": "31819",
     "search_hint": "wholegrain bread",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Wholegrain rye bread is the closest matching bread type."
   },
   {
@@ -2786,7 +2786,7 @@
     "fineli_id": "11571",
     "search_hint": "cream cheese",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Low-fat plain cream cheese."
   },
   {
@@ -2795,8 +2795,8 @@
     "fineli_id": "1",
     "search_hint": "sugar",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only generic sugar is available among candidates."
+    "confidence": "manual",
+    "notes": "Sugar equivalent in Fineli."
   },
   {
     "mealdb_name": "toffee popcorn",
@@ -2813,7 +2813,7 @@
     "fineli_id": "32837",
     "search_hint": "caramel",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Caramel sauce/toffee sauce."
   },
   {
@@ -2831,8 +2831,8 @@
     "fineli_id": "121",
     "search_hint": "pasta spaghetti macaroni",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Generic pasta/spaghetti/macaroni is the only pasta option."
+    "confidence": "manual",
+    "notes": "Dried pasta in Fineli."
   },
   {
     "mealdb_name": "fettuccine",
@@ -2840,8 +2840,8 @@
     "fineli_id": "121",
     "search_hint": "pasta spaghetti macaroni",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Generic pasta/spaghetti/macaroni is the only pasta option."
+    "confidence": "manual",
+    "notes": "Dried pasta in Fineli."
   },
   {
     "mealdb_name": "clotted cream",
@@ -2882,20 +2882,20 @@
   {
     "mealdb_name": "monkfish",
     "raw_name": "Monkfish",
-    "fineli_id": null,
-    "search_hint": "merikrottikala",
+    "fineli_id": "804",
+    "search_hint": "cod",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Lean white fish (cod) in Fineli."
   },
   {
     "mealdb_name": "vermicelli pasta",
     "raw_name": "Vermicelli Pasta",
-    "fineli_id": null,
-    "search_hint": "vermiselli",
+    "fineli_id": "121",
+    "search_hint": "pasta spaghetti macaroni",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Dried pasta in Fineli."
   },
   {
     "mealdb_name": "baby squid",
@@ -2903,7 +2903,7 @@
     "fineli_id": "865",
     "search_hint": "baby squid",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Squid is the closest match."
   },
   {
@@ -2930,7 +2930,7 @@
     "fineli_id": "831",
     "search_hint": "sardiini",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Sardine in oil and tomato sauce serves as a close alternative."
   },
   {
@@ -2963,38 +2963,38 @@
   {
     "mealdb_name": "chicken stock cube",
     "raw_name": "Chicken Stock Cube",
-    "fineli_id": null,
-    "search_hint": "chicken stock cube",
+    "fineli_id": "29009",
+    "search_hint": "chicken bouillon cube",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No chicken stock cube present (only fish stock cube and raw chicken parts)."
+    "confidence": "manual",
+    "notes": "Chicken bouillon cube in Fineli."
   },
   {
     "mealdb_name": "pappardelle pasta",
     "raw_name": "Pappardelle Pasta",
-    "fineli_id": null,
-    "search_hint": "pappardelle pasta",
+    "fineli_id": "121",
+    "search_hint": "pasta spaghetti macaroni",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No reasonable match among candidates."
+    "confidence": "manual",
+    "notes": "Dried pasta in Fineli."
   },
   {
     "mealdb_name": "paccheri pasta",
     "raw_name": "Paccheri Pasta",
-    "fineli_id": null,
-    "search_hint": "paccheri pasta",
+    "fineli_id": "121",
+    "search_hint": "pasta spaghetti macaroni",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No reasonable match among candidates."
+    "confidence": "manual",
+    "notes": "Dried pasta in Fineli."
   },
   {
     "mealdb_name": "linguine pasta",
     "raw_name": "Linguine Pasta",
-    "fineli_id": null,
-    "search_hint": "linguine pasta",
+    "fineli_id": "121",
+    "search_hint": "pasta spaghetti macaroni",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No reasonable match among candidates."
+    "confidence": "manual",
+    "notes": "Dried pasta in Fineli."
   },
   {
     "mealdb_name": "sugar snap pea",
@@ -3002,7 +3002,7 @@
     "fineli_id": "370",
     "search_hint": "pea",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": null
   },
   {
@@ -3026,11 +3026,11 @@
   {
     "mealdb_name": "clam",
     "raw_name": "Clams",
-    "fineli_id": null,
-    "search_hint": "clam",
+    "fineli_id": "834",
+    "search_hint": "mussel",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No matching clam foods found in candidates list."
+    "confidence": "manual",
+    "notes": "Shellfish equivalent in Fineli."
   },
   {
     "mealdb_name": "passata",
@@ -3038,7 +3038,7 @@
     "fineli_id": "354",
     "search_hint": "tomato puree",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Tomato puree (canned) is the closest strained tomato product available."
   },
   {
@@ -3053,11 +3053,11 @@
   {
     "mealdb_name": "stilton cheese",
     "raw_name": "Stilton Cheese",
-    "fineli_id": "33449",
-    "search_hint": "stilton cheese",
+    "fineli_id": "653",
+    "search_hint": "blue cheese",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only generic cheese available among candidates."
+    "confidence": "manual",
+    "notes": "Blue cheese in Fineli."
   },
   {
     "mealdb_name": "lamb leg",
@@ -3065,7 +3065,7 @@
     "fineli_id": "731",
     "search_hint": "lamb leg",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Raw lamb is the best basic food match."
   },
   {
@@ -3074,7 +3074,7 @@
     "fineli_id": "731",
     "search_hint": "lamb shoulder",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Raw lamb is the closest basic cut available."
   },
   {
@@ -3089,11 +3089,11 @@
   {
     "mealdb_name": "butternut squash",
     "raw_name": "Butternut Squash",
-    "fineli_id": null,
-    "search_hint": "butternut squash",
+    "fineli_id": "350",
+    "search_hint": "pumpkin",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No appropriate squash or vegetable match in candidates (only butter/coconut butter)."
+    "confidence": "manual",
+    "notes": "Pumpkin/winter squash in Fineli."
   },
   {
     "mealdb_name": "couscou",
@@ -3164,7 +3164,7 @@
     "fineli_id": "929",
     "search_hint": "vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Wine vinegar is the closest available specific vinegar type."
   },
   {
@@ -3173,7 +3173,7 @@
     "fineli_id": "395",
     "search_hint": "white bean",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "White bean (boiled) is the standard preparation for haricot beans."
   },
   {
@@ -3188,20 +3188,20 @@
   {
     "mealdb_name": "butter bean",
     "raw_name": "Butter Beans",
-    "fineli_id": null,
-    "search_hint": "butter bean",
+    "fineli_id": "395",
+    "search_hint": "bean white bean",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No butter bean candidate available (candidates are butter fats/dairy/dishes)."
+    "confidence": "manual",
+    "notes": "Boiled white bean equivalent."
   },
   {
     "mealdb_name": "pinto bean",
     "raw_name": "Pinto Beans",
-    "fineli_id": null,
-    "search_hint": "bean",
+    "fineli_id": "34380",
+    "search_hint": "bean white bean",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No pinto bean candidate available in the list."
+    "confidence": "manual",
+    "notes": "Dried bean equivalent."
   },
   {
     "mealdb_name": "tomato sauce",
@@ -3233,11 +3233,11 @@
   {
     "mealdb_name": "ricotta",
     "raw_name": "Ricotta",
-    "fineli_id": null,
-    "search_hint": "ricotta",
+    "fineli_id": "649",
+    "search_hint": "cottage cheese",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Fresh/cottage cheese equivalent."
   },
   {
     "mealdb_name": "dried apricot",
@@ -3308,26 +3308,26 @@
     "fineli_id": "3",
     "search_hint": "syrup",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic syrup is the closest available sweet syrup option."
   },
   {
     "mealdb_name": "light brown soft sugar",
     "raw_name": "Light Brown Soft Sugar",
-    "fineli_id": null,
-    "search_hint": "light brown soft sugar",
+    "fineli_id": "1",
+    "search_hint": "sugar",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No brown sugar candidate available."
+    "confidence": "manual",
+    "notes": "Sugar equivalent in Fineli."
   },
   {
     "mealdb_name": "dark brown soft sugar",
     "raw_name": "Dark Brown Soft Sugar",
     "fineli_id": "1",
-    "search_hint": "fariinisokeri",
+    "search_hint": "sugar",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only generic white sugar is available among non-matching items."
+    "confidence": "manual",
+    "notes": "Sugar equivalent in Fineli."
   },
   {
     "mealdb_name": "dark chocolate chip",
@@ -3335,7 +3335,7 @@
     "fineli_id": "32",
     "search_hint": "dark chocolate chip",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Plain dark chocolate is the closest ingredient match for dark chocolate chips."
   },
   {
@@ -3404,11 +3404,11 @@
   {
     "mealdb_name": "peache",
     "raw_name": "Peaches",
-    "fineli_id": null,
-    "search_hint": "peache",
-    "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only dried peach available; raw not found in candidate list."
+    "fineli_id": "11051",
+    "search_hint": "peach",
+    "default_weight_g": 130.0,
+    "confidence": "manual",
+    "notes": "Peach in Fineli."
   },
   {
     "mealdb_name": "yellow pepper",
@@ -3461,26 +3461,26 @@
     "fineli_id": "342",
     "search_hint": "wild mushroom",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Matches generic wild mushrooms (boletus/russula)."
   },
   {
     "mealdb_name": "truffle oil",
     "raw_name": "Truffle Oil",
-    "fineli_id": null,
-    "search_hint": "tryffeliöljy",
+    "fineli_id": "536",
+    "search_hint": "olive oil",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Flavored olive oil equivalent."
   },
   {
     "mealdb_name": "paneer",
     "raw_name": "Paneer",
-    "fineli_id": null,
-    "search_hint": "paneer",
+    "fineli_id": "657",
+    "search_hint": "finnish oven cheese",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only composite dishes available, no raw paneer cheese entry."
+    "confidence": "manual",
+    "notes": "Fresh cooking cheese equivalent."
   },
   {
     "mealdb_name": "naan bread",
@@ -3524,7 +3524,7 @@
     "fineli_id": "11522",
     "search_hint": "mixed grain",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Matches raw rye and rice mix."
   },
   {
@@ -3539,11 +3539,11 @@
   {
     "mealdb_name": "tortilla",
     "raw_name": "Tortillas",
-    "fineli_id": null,
-    "search_hint": "tortilla",
+    "fineli_id": "30186",
+    "search_hint": "wheat tortilla",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "All candidates are filled wraps or chips, no plain tortilla available."
+    "confidence": "manual",
+    "notes": "Wheat tortilla in Fineli."
   },
   {
     "mealdb_name": "udon noodle",
@@ -3551,17 +3551,17 @@
     "fineli_id": "120",
     "search_hint": "udon noodle",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Matches raw wheat noodle; specific Udon not available."
   },
   {
     "mealdb_name": "cabbage",
     "raw_name": "Cabbage",
-    "fineli_id": null,
-    "search_hint": "cabbage",
+    "fineli_id": "320",
+    "search_hint": "white cabbage",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No raw cabbage found in candidates, only cooked/casserole options."
+    "confidence": "manual",
+    "notes": "White cabbage in Fineli."
   },
   {
     "mealdb_name": "shiitake mushroom",
@@ -3575,20 +3575,20 @@
   {
     "mealdb_name": "mirin",
     "raw_name": "Mirin",
-    "fineli_id": null,
-    "search_hint": "mirin",
+    "fineli_id": "926",
+    "search_hint": "white wine sweet",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Sweet wine equivalent."
   },
   {
     "mealdb_name": "sesame seed oil",
     "raw_name": "Sesame Seed Oil",
-    "fineli_id": null,
-    "search_hint": "sesame seed oil",
+    "fineli_id": "540",
+    "search_hint": "sunflower oil",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only seeds listed, not oil."
+    "confidence": "manual",
+    "notes": "Pure seed/vegetable oil equivalent."
   },
   {
     "mealdb_name": "baguette",
@@ -3668,7 +3668,7 @@
     "fineli_id": "791",
     "search_hint": "lamb kidney",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Matches generic kidney (species not specified in Fineli ID)."
   },
   {
@@ -3677,17 +3677,17 @@
     "fineli_id": "791",
     "search_hint": "beef kidney",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Matches generic kidney."
   },
   {
     "mealdb_name": "haddock",
     "raw_name": "Haddock",
-    "fineli_id": null,
-    "search_hint": "kolja",
+    "fineli_id": "804",
+    "search_hint": "cod",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Lean white fish (cod) in Fineli."
   },
   {
     "mealdb_name": "smoked haddock",
@@ -3722,7 +3722,7 @@
     "fineli_id": "444",
     "search_hint": "currant",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Matches raw blackcurrant."
   },
   {
@@ -3731,7 +3731,7 @@
     "fineli_id": "6000",
     "search_hint": "custard",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Matches basic milk custard dish."
   },
   {
@@ -3866,7 +3866,7 @@
     "fineli_id": "34249",
     "search_hint": "white flour",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Coarse wheat flour is the closest match for general baking white flour."
   },
   {
@@ -3884,7 +3884,7 @@
     "fineli_id": "427",
     "search_hint": "fruit mix",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Matches dried mixed fruit."
   },
   {
@@ -3920,7 +3920,7 @@
     "fineli_id": "3",
     "search_hint": "sokerisiirappi",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Syrup is the closest chemical substitute for treacle."
   },
   {
@@ -3965,7 +3965,7 @@
     "fineli_id": "11136",
     "search_hint": "cream",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Low-fat cream is the closest substitute for single cream."
   },
   {
@@ -4118,7 +4118,7 @@
     "fineli_id": "30444",
     "search_hint": "tomato",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Tomato, sun-dried, in oil is the closest available option."
   },
   {
@@ -4127,7 +4127,7 @@
     "fineli_id": "28",
     "search_hint": "dijon mustard",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic mustard is the only candidate available."
   },
   {
@@ -4253,7 +4253,7 @@
     "fineli_id": "933",
     "search_hint": "malt vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic vinegar is the closest option."
   },
   {
@@ -4262,7 +4262,7 @@
     "fineli_id": "933",
     "search_hint": "vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic vinegar is the closest option."
   },
   {
@@ -4307,7 +4307,7 @@
     "fineli_id": "335",
     "search_hint": "onion",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Regular onion is the closest basic onion choice."
   },
   {
@@ -4334,7 +4334,7 @@
     "fineli_id": "27",
     "search_hint": "starch",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Cornstarch is a common default starch."
   },
   {
@@ -4514,7 +4514,7 @@
     "fineli_id": "379",
     "search_hint": "almond extract",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest base ingredient available."
   },
   {
@@ -4595,7 +4595,7 @@
     "fineli_id": "908",
     "search_hint": "grand marnier",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General category for liqueur."
   },
   {
@@ -4649,7 +4649,7 @@
     "fineli_id": "11733",
     "search_hint": "bread roll",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Standard white roll selection."
   },
   {
@@ -4694,7 +4694,7 @@
     "fineli_id": "204",
     "search_hint": "yukon gold potato",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General potato as best available option."
   },
   {
@@ -4730,7 +4730,7 @@
     "fineli_id": "346",
     "search_hint": "persian cucumber",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Standard cucumber as generic substitute."
   },
   {
@@ -4829,7 +4829,7 @@
     "fineli_id": "33449",
     "search_hint": "cheese slice",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Average cheese is the closest basic food item."
   },
   {
@@ -4874,7 +4874,7 @@
     "fineli_id": "1",
     "search_hint": "sugar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Standard sugar is the closest basic sweetening ingredient."
   },
   {
@@ -4892,7 +4892,7 @@
     "fineli_id": "33097",
     "search_hint": "polish sausage",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Bratwurst sausage is the closest sausage type."
   },
   {
@@ -4919,7 +4919,7 @@
     "fineli_id": "837",
     "search_hint": "herring",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Pickled/salted average herring is a common culinary form."
   },
   {
@@ -4964,7 +4964,7 @@
     "fineli_id": "939",
     "search_hint": "cider",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Standard sweet 4.7% volume cider represents standard alcoholic cider."
   },
   {
@@ -5000,7 +5000,7 @@
     "fineli_id": "161",
     "search_hint": "buckwheat",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Whole or crushed buckwheat flour/grain is the base raw ingredient."
   },
   {
@@ -5027,7 +5027,7 @@
     "fineli_id": "28966",
     "search_hint": "falafel",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Fried chickpea patty (falafel) is a direct dish match."
   },
   {
@@ -5045,7 +5045,7 @@
     "fineli_id": "11187",
     "search_hint": "black cardamom pod",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Using general cardamom as specific black variety is not available."
   },
   {
@@ -5117,7 +5117,7 @@
     "fineli_id": "6037",
     "search_hint": "soured cream and chive dip",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General sour cream sauce match."
   },
   {
@@ -5126,7 +5126,7 @@
     "fineli_id": "11048",
     "search_hint": "käsittelemätön sitruuna",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Lemon without skin serves as a proxy."
   },
   {
@@ -5288,7 +5288,7 @@
     "fineli_id": "1513",
     "search_hint": "porridge oat",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Oat porridge as closest match."
   },
   {
@@ -5315,7 +5315,7 @@
     "fineli_id": "929",
     "search_hint": "cider vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Wine vinegar as proxy for apple cider vinegar."
   },
   {
@@ -5333,7 +5333,7 @@
     "fineli_id": "26",
     "search_hint": "kuivahiiva",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Fresh baking yeast as proxy."
   },
   {
@@ -5351,7 +5351,7 @@
     "fineli_id": "698",
     "search_hint": "västerbottensost",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Cheddar as a common semi-hard cheese proxy."
   },
   {
@@ -5432,7 +5432,7 @@
     "fineli_id": "871",
     "search_hint": "fish fillet",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Salmon fillet used as a representative raw fish fillet."
   },
   {
@@ -5468,7 +5468,7 @@
     "fineli_id": "28913",
     "search_hint": "red potato",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Raw average potato used as closest match for generic red potatoes."
   },
   {
@@ -5504,7 +5504,7 @@
     "fineli_id": "379",
     "search_hint": "almond flour",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Whole almond raw is the closest base ingredient available."
   },
   {
@@ -5576,7 +5576,7 @@
     "fineli_id": "11182",
     "search_hint": "sweet smoked paprika",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Paprika powder is the closest available spice match."
   },
   {
@@ -5603,7 +5603,7 @@
     "fineli_id": "30801",
     "search_hint": "ilmakuivattu kinkku",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Parma ham is the closest cured ham match."
   },
   {
@@ -5639,7 +5639,7 @@
     "fineli_id": "29010",
     "search_hint": "kalaliemi",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Fish stock cube is the closest match for seafood stock."
   },
   {
@@ -5684,7 +5684,7 @@
     "fineli_id": "929",
     "search_hint": "sherry vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Vinegar, wine vinegar is the closest match for sherry vinegar."
   },
   {
@@ -5693,7 +5693,7 @@
     "fineli_id": "386",
     "search_hint": "roasted pepper",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Sweet pepper, red is the closest raw base food available."
   },
   {
@@ -5711,7 +5711,7 @@
     "fineli_id": "707",
     "search_hint": "bacon lardon",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Bacon, 32% fat is the closest raw/smoked bacon ingredient."
   },
   {
@@ -5720,7 +5720,7 @@
     "fineli_id": "386",
     "search_hint": "mixed pepper",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Sweet pepper, red represents bell peppers."
   },
   {
@@ -5783,7 +5783,7 @@
     "fineli_id": "11182",
     "search_hint": "hot smoked paprika",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Paprika powder is the closest match, though hot smoked is specific."
   },
   {
@@ -5855,7 +5855,7 @@
     "fineli_id": "33021",
     "search_hint": "panang curry paste",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Spice paste, curry paste is the closest match."
   },
   {
@@ -5936,7 +5936,7 @@
     "fineli_id": "31557",
     "search_hint": "thai-chili",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Chili, raw is the closest general chili match."
   },
   {
@@ -5945,7 +5945,7 @@
     "fineli_id": "722",
     "search_hint": "sirloin steak",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Beef sirloin raw is the base ingredient match."
   },
   {
@@ -5969,11 +5969,11 @@
   {
     "mealdb_name": "lime juice",
     "raw_name": "Lime juice",
-    "fineli_id": null,
-    "search_hint": "lime juice",
+    "fineli_id": "11557",
+    "search_hint": "lemon juice",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No lime juice candidate available."
+    "confidence": "manual",
+    "notes": "Lemon juice equivalent (lime juice not in Fineli)."
   },
   {
     "mealdb_name": "thai chilli jam",
@@ -6107,7 +6107,7 @@
     "fineli_id": "29055",
     "search_hint": "brown rice noodle",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Rice noodle is the closest ingredient match."
   },
   {
@@ -6143,7 +6143,7 @@
     "fineli_id": "156",
     "search_hint": "riisi",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "White rice is the most common base for generic rice labels."
   },
   {
@@ -6167,11 +6167,11 @@
   {
     "mealdb_name": "chuck roast",
     "raw_name": "Chuck Roast",
-    "fineli_id": "732",
-    "search_hint": "chuck roast",
+    "fineli_id": "718",
+    "search_hint": "beef round",
     "default_weight_g": null,
-    "confidence": "medium",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Raw beef cut."
   },
   {
     "mealdb_name": "ground clove",
@@ -6206,7 +6206,7 @@
     "fineli_id": "393",
     "search_hint": "garlic granule",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Raw garlic is the source ingredient."
   },
   {
@@ -6215,7 +6215,7 @@
     "fineli_id": "29795",
     "search_hint": "toast",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic white wheat toast."
   },
   {
@@ -6251,7 +6251,7 @@
     "fineli_id": "29066",
     "search_hint": "kerma",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Whipping cream is the closest fat-content match for malai."
   },
   {
@@ -6314,7 +6314,7 @@
     "fineli_id": "915",
     "search_hint": "soda water",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Mineral water is the closest carbonated option."
   },
   {
@@ -6323,7 +6323,7 @@
     "fineli_id": "324",
     "search_hint": "purple sprouting broccoli",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Standard broccoli is the closest variety."
   },
   {
@@ -6332,7 +6332,7 @@
     "fineli_id": "731",
     "search_hint": "lamb shank",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic lamb raw meat."
   },
   {
@@ -6377,7 +6377,7 @@
     "fineli_id": "1",
     "search_hint": "palm sugar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic sugar is the closest match for carbohydrate content."
   },
   {
@@ -6413,7 +6413,7 @@
     "fineli_id": "34555",
     "search_hint": "rice flour pancake",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Only pancake candidate specifically matching rice flour"
   },
   {
@@ -6455,20 +6455,20 @@
   {
     "mealdb_name": "sea bass",
     "raw_name": "Sea Bass",
-    "fineli_id": null,
-    "search_hint": "meribassi",
+    "fineli_id": "804",
+    "search_hint": "cod",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Lean white fish (cod) in Fineli."
   },
   {
     "mealdb_name": "sea bass fillet",
     "raw_name": "Sea Bass Fillets",
-    "fineli_id": null,
-    "search_hint": "sea bass fillet",
+    "fineli_id": "804",
+    "search_hint": "cod",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No sea bass candidate available"
+    "confidence": "manual",
+    "notes": "Lean white fish (cod) in Fineli."
   },
   {
     "mealdb_name": "petit poi",
@@ -6539,7 +6539,7 @@
     "fineli_id": "386",
     "search_hint": "romano pepper",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Red sweet pepper is the closest match for a Romano pepper"
   },
   {
@@ -6593,7 +6593,7 @@
     "fineli_id": "33494",
     "search_hint": "sweet peppadew pepper",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Canned red sweet pepper is closest to sweet pickled peppers"
   },
   {
@@ -6674,7 +6674,7 @@
     "fineli_id": "31590",
     "search_hint": "vanilla custard",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Vanillacrème matches vanilla custard"
   },
   {
@@ -6761,11 +6761,11 @@
   {
     "mealdb_name": "unwaxed lime",
     "raw_name": "Unwaxed Lime",
-    "fineli_id": null,
-    "search_hint": "luomu limetti",
-    "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "fineli_id": "11048",
+    "search_hint": "lemon",
+    "default_weight_g": 65.0,
+    "confidence": "manual",
+    "notes": "Lemon equivalent (lime not in Fineli)."
   },
   {
     "mealdb_name": "polish kabano",
@@ -6773,7 +6773,7 @@
     "fineli_id": "32722",
     "search_hint": "kabanossi",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest available kabanossi sausage."
   },
   {
@@ -6782,7 +6782,7 @@
     "fineli_id": "320",
     "search_hint": "suippokaali",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "White cabbage is the closest morphological match for hispi cabbage."
   },
   {
@@ -6791,7 +6791,7 @@
     "fineli_id": "330",
     "search_hint": "baby lettuce leave",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General lettuce is the best fit among raw options."
   },
   {
@@ -6818,7 +6818,7 @@
     "fineli_id": "33097",
     "search_hint": "german sausage",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Bratwurst is a classic German sausage match."
   },
   {
@@ -6881,7 +6881,7 @@
     "fineli_id": "377",
     "search_hint": "cooked chestnut",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Raw chestnut is the base food available."
   },
   {
@@ -6908,7 +6908,7 @@
     "fineli_id": "176",
     "search_hint": "rye",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Crushed rye grain is a fundamental raw rye ingredient."
   },
   {
@@ -6926,7 +6926,7 @@
     "fineli_id": "28",
     "search_hint": "wholegrain mustard",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Standard mustard is the closest match."
   },
   {
@@ -6980,7 +6980,7 @@
     "fineli_id": "110",
     "search_hint": "wheat flour",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Semi-coarse wheat flour is typically used for bread baking when strong flour isn't specified."
   },
   {
@@ -7025,7 +7025,7 @@
     "fineli_id": "720",
     "search_hint": "potka",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Beef knuckle/shank is the closest meat cut available."
   },
   {
@@ -7070,17 +7070,17 @@
     "fineli_id": "1",
     "search_hint": "ruokosokeri",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Papelon is unrefined cane sugar, standard sugar is the closest generic surrogate."
   },
   {
     "mealdb_name": "skirty steak",
     "raw_name": "Skirty Steak",
-    "fineli_id": null,
-    "search_hint": "skirty steak",
+    "fineli_id": "723",
+    "search_hint": "beef flank",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No suitable match among provided candidates."
+    "confidence": "manual",
+    "notes": "Beef flank/skirt cut."
   },
   {
     "mealdb_name": "white masarepa",
@@ -7160,7 +7160,7 @@
     "fineli_id": "29822",
     "search_hint": "maissijauho",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Coarsely ground corn meal is the closest raw base."
   },
   {
@@ -7187,7 +7187,7 @@
     "fineli_id": "29239",
     "search_hint": "corn arepa filled with mozarella cheese",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Focusing on the mozzarella component as the best available match for the filling."
   },
   {
@@ -7205,7 +7205,7 @@
     "fineli_id": "1448",
     "search_hint": "salsa",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Tomato salsa is the closest culinary equivalent."
   },
   {
@@ -7220,11 +7220,11 @@
   {
     "mealdb_name": "yellow split pea",
     "raw_name": "Yellow Split Peas",
-    "fineli_id": null,
-    "search_hint": "yellow split pea",
+    "fineli_id": "371",
+    "search_hint": "pea green dried",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Yellow sweet pepper is not a pea."
+    "confidence": "manual",
+    "notes": "Dried peas in Fineli."
   },
   {
     "mealdb_name": "dried white navy bean",
@@ -7256,11 +7256,11 @@
   {
     "mealdb_name": "pitted date",
     "raw_name": "Pitted Dates",
-    "fineli_id": null,
-    "search_hint": "taateli kivetön",
+    "fineli_id": "28937",
+    "search_hint": "date",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Neither plums nor cherries are dates."
+    "confidence": "manual",
+    "notes": "Dried dates in Fineli."
   },
   {
     "mealdb_name": "graham cracker crumb",
@@ -7313,7 +7313,7 @@
     "fineli_id": "29779",
     "search_hint": "murot",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic mixed grain cereal is the closest surrogate."
   },
   {
@@ -7355,20 +7355,20 @@
   {
     "mealdb_name": "shrimp stock",
     "raw_name": "Shrimp Stock",
-    "fineli_id": "835",
-    "search_hint": "shrimp stock",
+    "fineli_id": "29010",
+    "search_hint": "fish stock cube",
     "default_weight_g": null,
-    "confidence": "medium",
-    "notes": "Using raw shrimp as the primary ingredient reference."
+    "confidence": "manual",
+    "notes": "Seafood/fish stock cube."
   },
   {
     "mealdb_name": "snapper fish",
     "raw_name": "Snapper Fish",
-    "fineli_id": null,
-    "search_hint": "snapper fish",
+    "fineli_id": "804",
+    "search_hint": "cod",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No matching fineli food available for snapper fish"
+    "confidence": "manual",
+    "notes": "Lean white fish (cod) in Fineli."
   },
   {
     "mealdb_name": "fish seasoning",
@@ -7385,7 +7385,7 @@
     "fineli_id": "117",
     "search_hint": "penne pasta",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Macaroni, pasta is the closest basic pasta match"
   },
   {
@@ -7490,11 +7490,11 @@
   {
     "mealdb_name": "high heat cooking oil",
     "raw_name": "High Heat Cooking Oil",
-    "fineli_id": null,
-    "search_hint": "high heat cooking oil",
+    "fineli_id": "535",
+    "search_hint": "rapeseed oil",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only popcorn dish available"
+    "confidence": "manual",
+    "notes": "Neutral vegetable oil in Fineli."
   },
   {
     "mealdb_name": "seasoned rice vinegar",
@@ -7502,7 +7502,7 @@
     "fineli_id": "933",
     "search_hint": "seasoned rice vinegar",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "General vinegar is the closest match"
   },
   {
@@ -7526,11 +7526,11 @@
   {
     "mealdb_name": "silken tofu",
     "raw_name": "Silken Tofu",
-    "fineli_id": null,
-    "search_hint": "silken tofu",
+    "fineli_id": "33501",
+    "search_hint": "tofu soft",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
+    "confidence": "manual",
+    "notes": "Soft tofu in Fineli."
   },
   {
     "mealdb_name": "chinese sesame sauce",
@@ -7544,20 +7544,20 @@
   {
     "mealdb_name": "unsalted beef stock",
     "raw_name": "Unsalted Beef Stock",
-    "fineli_id": null,
-    "search_hint": "unsalted beef stock",
+    "fineli_id": "38",
+    "search_hint": "meat bouillon",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No beef stock available in candidates"
+    "confidence": "manual",
+    "notes": "Meat bouillon in Fineli."
   },
   {
     "mealdb_name": "shaoxing wine",
     "raw_name": "Shaoxing Wine",
-    "fineli_id": null,
-    "search_hint": "riisiviini",
+    "fineli_id": "925",
+    "search_hint": "white wine",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No Chinese cooking wine available in candidates"
+    "confidence": "manual",
+    "notes": "Dry white wine equivalent."
   },
   {
     "mealdb_name": "mung bean sprout",
@@ -7592,7 +7592,7 @@
     "fineli_id": "29009",
     "search_hint": "chicken bouillon powder",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Chicken bouillon cube is the closest form"
   },
   {
@@ -7625,11 +7625,11 @@
   {
     "mealdb_name": "snow pea",
     "raw_name": "Snow Peas",
-    "fineli_id": null,
-    "search_hint": "snow pea",
+    "fineli_id": "370",
+    "search_hint": "pea green",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Pea shoot is not snow peas"
+    "confidence": "manual",
+    "notes": "Green peas in Fineli."
   },
   {
     "mealdb_name": "pineapple chunk",
@@ -7670,11 +7670,11 @@
   {
     "mealdb_name": "split pea",
     "raw_name": "Split Peas",
-    "fineli_id": null,
-    "search_hint": "split pea",
+    "fineli_id": "371",
+    "search_hint": "pea green dried",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No suitable match for dried split peas."
+    "confidence": "manual",
+    "notes": "Dried peas in Fineli."
   },
   {
     "mealdb_name": "ground sugar",
@@ -7709,7 +7709,7 @@
     "fineli_id": "3",
     "search_hint": "siirappi",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Syrup is the closest category for Dutch stroop."
   },
   {
@@ -7724,20 +7724,20 @@
   {
     "mealdb_name": "vegetable millk",
     "raw_name": "Vegetable Millk",
-    "fineli_id": null,
-    "search_hint": "vegetable millk",
+    "fineli_id": "31247",
+    "search_hint": "soya drink",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No vegetable-based milk alternatives available in candidates."
+    "confidence": "manual",
+    "notes": "Plain plant milk equivalent."
   },
   {
     "mealdb_name": "dessert rice",
     "raw_name": "Dessert Rice",
-    "fineli_id": null,
-    "search_hint": "dessert rice",
+    "fineli_id": "156",
+    "search_hint": "rice white",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No raw dessert rice or pudding rice; candidates are prepared desserts."
+    "confidence": "manual",
+    "notes": "White rice in Fineli."
   },
   {
     "mealdb_name": "nougatine",
@@ -7781,17 +7781,17 @@
     "fineli_id": "31213",
     "search_hint": "mung bean",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Boiled mung bean is the only option, though raw is preferred."
   },
   {
     "mealdb_name": "dried dill",
     "raw_name": "Dried Dill",
-    "fineli_id": null,
-    "search_hint": "dried dill",
+    "fineli_id": "369",
+    "search_hint": "dill fresh",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Dried dill is not in the list; fresh dill is a different preparation."
+    "confidence": "manual",
+    "notes": "Dill in Fineli."
   },
   {
     "mealdb_name": "strained yoghurt",
@@ -7799,7 +7799,7 @@
     "fineli_id": "11736",
     "search_hint": "strained yoghurt",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Plain yoghurt is the closest available item."
   },
   {
@@ -7823,11 +7823,11 @@
   {
     "mealdb_name": "tempura flour",
     "raw_name": "Tempura Flour",
-    "fineli_id": null,
-    "search_hint": "tempura flour",
+    "fineli_id": "110",
+    "search_hint": "wheat flour",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No suitable match for tempura flour."
+    "confidence": "manual",
+    "notes": "Wheat flour in Fineli."
   },
   {
     "mealdb_name": "rice flour",
@@ -7871,7 +7871,7 @@
     "fineli_id": "182",
     "search_hint": "sticky rice flour",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Closest match for rice flour, though glutinous variety differs."
   },
   {
@@ -7970,7 +7970,7 @@
     "fineli_id": "393",
     "search_hint": "pickled garlic",
     "default_weight_g": 5.0,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Raw garlic is the base; pickled preparation not available."
   },
   {
@@ -8138,11 +8138,11 @@
   {
     "mealdb_name": "ground mustard",
     "raw_name": "Ground Mustard",
-    "fineli_id": null,
-    "search_hint": "ground mustard",
+    "fineli_id": "28",
+    "search_hint": "mustard",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only prepared mustard available, not ground dry mustard powder."
+    "confidence": "manual",
+    "notes": "Mustard in Fineli."
   },
   {
     "mealdb_name": "banana leave",
@@ -8186,7 +8186,7 @@
     "fineli_id": "336",
     "search_hint": "ground onion",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Dried onion is the closest processed form to ground onion."
   },
   {
@@ -8222,7 +8222,7 @@
     "fineli_id": "350",
     "search_hint": "pumpkin",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Raw pumpkin is the closest base ingredient available."
   },
   {
@@ -8267,7 +8267,7 @@
     "fineli_id": "33021",
     "search_hint": "red curry paste",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Mild curry paste is the closest available option."
   },
   {
@@ -8357,7 +8357,7 @@
     "fineli_id": "350",
     "search_hint": "kurpitsa",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Zapallo is a type of pumpkin squash."
   },
   {
@@ -8375,26 +8375,26 @@
     "fineli_id": "33449",
     "search_hint": "swiss cheese",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Generic cheese is the closest approximation."
   },
   {
     "mealdb_name": "great northern bean",
     "raw_name": "Great Northern Beans",
-    "fineli_id": null,
-    "search_hint": "great northern bean",
+    "fineli_id": "34380",
+    "search_hint": "bean white bean",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Northern milkcap is a mushroom, not a bean."
+    "confidence": "manual",
+    "notes": "Dried white/navy bean equivalent."
   },
   {
     "mealdb_name": "lima bean",
     "raw_name": "Lima Beans",
-    "fineli_id": null,
-    "search_hint": "lima bean",
+    "fineli_id": "34380",
+    "search_hint": "bean white bean",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only composite bean dishes provided."
+    "confidence": "manual",
+    "notes": "Dried bean equivalent."
   },
   {
     "mealdb_name": "banana pepper",
@@ -8411,7 +8411,7 @@
     "fineli_id": "649",
     "search_hint": "farmer cheese",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Cottage cheese is a common generic surrogate for farmers cheese."
   },
   {
@@ -8447,7 +8447,7 @@
     "fineli_id": "650",
     "search_hint": "tuorejuusto",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Home-made fresh cheese is the closest category."
   },
   {
@@ -8510,7 +8510,7 @@
     "fineli_id": "33357",
     "search_hint": "kahvi",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Instant coffee powder is the closest form."
   },
   {
@@ -8546,7 +8546,7 @@
     "fineli_id": "799",
     "search_hint": "kinkkuleikkele",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Cooked ham is the base ingredient."
   },
   {
@@ -8561,11 +8561,11 @@
   {
     "mealdb_name": "cooking apple",
     "raw_name": "Cooking Apples",
-    "fineli_id": null,
-    "search_hint": "cooking apple",
-    "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only processed items or dried apples listed."
+    "fineli_id": "28916",
+    "search_hint": "apple",
+    "default_weight_g": 150.0,
+    "confidence": "manual",
+    "notes": "Apple in Fineli."
   },
   {
     "mealdb_name": "vanilla powder",
@@ -8579,11 +8579,11 @@
   {
     "mealdb_name": "coarse salt",
     "raw_name": "Coarse Salt",
-    "fineli_id": null,
-    "search_hint": "karkea suola",
+    "fineli_id": "30",
+    "search_hint": "salt",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only crackers listed."
+    "confidence": "manual",
+    "notes": "Salt in Fineli."
   },
   {
     "mealdb_name": "rye grain",
@@ -8609,7 +8609,7 @@
     "fineli_id": "34668",
     "search_hint": "seed",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Seed blend is the most appropriate general category."
   },
   {
@@ -8645,7 +8645,7 @@
     "fineli_id": "804",
     "search_hint": "turska",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Cod is the species."
   },
   {
@@ -8669,11 +8669,11 @@
   {
     "mealdb_name": "ice cube",
     "raw_name": "Ice Cubes",
-    "fineli_id": null,
-    "search_hint": "ice cube",
+    "fineli_id": "922",
+    "search_hint": "water",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "No suitable match for pure water ice cubes among tea candidates."
+    "confidence": "manual",
+    "notes": "Water in Fineli."
   },
   {
     "mealdb_name": "cocoy banana",
@@ -8699,7 +8699,7 @@
     "fineli_id": "33189",
     "search_hint": "sweet quark",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Flavoured sweet quark is the closest match to sweet quark."
   },
   {
@@ -8708,7 +8708,7 @@
     "fineli_id": "33683",
     "search_hint": "sour milk",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "Standard sour milk with 2% fat is a reasonable general choice."
   },
   {
@@ -8717,7 +8717,7 @@
     "fineli_id": "11090",
     "search_hint": "bean",
     "default_weight_g": null,
-    "confidence": "medium",
+    "confidence": "high",
     "notes": "White bean in tomato sauce represents a common canned bean product among options."
   },
   {
