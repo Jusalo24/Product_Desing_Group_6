@@ -19,3 +19,6 @@ dist/
 # Fineli open data (CC BY 4.0) - downloaded locally, imported into the DB
 backend/data/
 **/Fineli_Rel20__74_ravintotekij__.zip
+
+# Mapping generation script kept local for development
+backend/app/scripts/generate_ingredient_mappings.py

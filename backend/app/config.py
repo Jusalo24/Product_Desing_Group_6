@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     external_cache_ttl_seconds: int = 3600
     external_cache_max_size: int = 100
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

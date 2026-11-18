@@ -8,6 +8,7 @@ from app.database import (
     Base,
     engine,
     ensure_fineli_classification_columns,
+    ensure_fineli_search_indexes,
     ensure_recipe_source_columns,
 )
 
@@ -16,6 +17,7 @@ def main() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_fineli_classification_columns(engine)
     ensure_recipe_source_columns(engine)
+    ensure_fineli_search_indexes(engine)
     print("Database schema is up to date.")
 
 

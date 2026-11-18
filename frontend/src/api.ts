@@ -43,6 +43,10 @@ export const api = {
       `/recipes/${recipeId}/ingredients/${ingredientId}/nutrition-source`,
       { method: "PUT", body: JSON.stringify({ fineli_id: fineliId }) },
     ),
+  autoMatchIngredients: (recipeId: number) =>
+    request<Recipe>(`/recipes/${recipeId}/ingredients/auto-match`, {
+      method: "POST",
+    }),
   getNutrition: (id: number) => request<NutritionResponse>(`/recipes/${id}/nutrition`),
   recalculateNutrition: (id: number) =>
     request<NutritionResponse>(`/recipes/${id}/nutrition/recalculate`, { method: "POST" }),

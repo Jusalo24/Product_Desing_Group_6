@@ -232,7 +232,7 @@ def test_fineli_match_can_be_confirmed_without_quantity(client, monkeypatch) -> 
         "/api/recipes",
         json={
             "title": "Original measures",
-            "ingredients": [{"name": "Olive oil", "amount": "1 tbsp"}],
+            "ingredients": [{"name": "Mystery spice", "amount": "2 pieces"}],
         },
     ).json()
     ingredient = created["ingredients"][0]
@@ -245,6 +245,46 @@ def test_fineli_match_can_be_confirmed_without_quantity(client, monkeypatch) -> 
     assert response.status_code == 200
     assert response.json()["fineli_id"] == "1"
     assert response.json()["fineli_name"] == "Test food"
-    assert response.json()["amount"] == "1 tbsp"
+    assert response.json()["amount"] == "2 pieces"
     assert response.json()["quantity"] is None
     assert response.json()["unit"] is None
+    assert response.json()["conversion_status"] == "unknown"
+
+
+def test_fineli_match_converts_volume_fallback_and_negligible_measure(client, monkeypatch) -> None:
+    mock_fineli(monkeypatch)
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Fallback and negligible",
+            "ingredients": [
+                {"name": "Olive oil", "amount": "1 tbsp"},
+                {"name": "Salt", "amount": "to taste"},
+            ],
+        },
+    ).json()
+    oil, salt = created["ingredients"]
+
+    oil_res = client.put(
+        f"/api/recipes/{created['id']}/ingredients/{oil['id']}/nutrition-source",
+        json={"fineli_id": "1"},
+    )
+    assert oil_res.status_code == 200
+    assert oil_res.json()["quantity"] == pytest.approx(15 * 0.91)
+    assert oil_res.json()["unit"] == "g"
+    assert oil_res.json()["conversion_status"] == "estimated"
+
+    salt_res = client.put(
+        f"/api/recipes/{created['id']}/ingredients/{salt['id']}/nutrition-source",
+        json={"fineli_id": "1"},
+    )
+    assert salt_res.status_code == 200
+    assert salt_res.json()["quantity"] is None
+    assert salt_res.json()["conversion_status"] == "negligible"
+
+    calc = client.post(f"/api/recipes/{created['id']}/nutrition/recalculate")
+    assert calc.status_code == 200
+    assert [item["reason"] for item in calc.json()["ingredient_results"]] == [
+        None,
+        "negligible_measure",
+    ]

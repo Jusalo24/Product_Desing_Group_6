@@ -14,6 +14,9 @@ export interface Ingredient {
 export interface FineliFood {
   id: string;
   name: string;
+  food_type?: string | null;
+  process?: string | null;
+  ingredient_class?: string | null;
   nutrients_per_100g: Record<string, number | null>;
   detailed_nutrients: FineliNutrient[];
   units: { code: string; name: string; grams: number }[];

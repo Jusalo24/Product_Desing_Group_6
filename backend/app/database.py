@@ -72,3 +72,27 @@ def ensure_recipe_source_columns(db_engine=engine) -> None:
             connection.execute(
                 text("UPDATE recipe_sources SET extra_data = '{}' WHERE extra_data IS NULL")
             )
+
+
+def ensure_fineli_search_indexes(db_engine=engine) -> None:
+    """Create PostgreSQL pg_trgm extension and trigram indexes when available."""
+    if db_engine.dialect.name != "postgresql":
+        return
+    try:
+        with db_engine.begin() as connection:
+            connection.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+            connection.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_fineli_foods_name_en_trgm "
+                    "ON fineli_foods USING gin (name_en gin_trgm_ops)"
+                )
+            )
+            connection.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_fineli_foods_name_fi_trgm "
+                    "ON fineli_foods USING gin (name_fi gin_trgm_ops)"
+                )
+            )
+    except Exception:
+        # Non-superuser PostgreSQL roles may not allow CREATE EXTENSION; ILIKE search still works.
+        return

@@ -219,3 +219,23 @@ class RecipeSource(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     recipe: Mapped[Recipe] = relationship(back_populates="source")
+
+
+class IngredientMapping(Base):
+    """Curated or LLM-assisted mapping from normalized TheMealDB ingredient names to Fineli."""
+
+    __tablename__ = "ingredient_mappings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    mealdb_name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    raw_name: Mapped[str] = mapped_column(String(200))
+    fineli_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    search_hint: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    default_weight_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    confidence: Mapped[str] = mapped_column(
+        String(20), default="medium", server_default="medium"
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
