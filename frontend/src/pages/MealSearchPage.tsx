@@ -207,36 +207,6 @@ export default function MealSearchPage() {
       {loading && <p role="status">Haetaan...</p>}
       {error && <p role="alert">{error}</p>}
 
-      <section aria-label="Hakutulokset" className="feature-grid">
-        {meals.map((meal) => (
-          <article key={meal.id} className="feature-card">
-            {meal.imageUrl ? (
-              <img
-                src={meal.imageUrl}
-                alt=""
-                loading="lazy"
-                className="feature-card__image"
-              />
-            ) : (
-              <div className="feature-card__image feature-card__image--empty">
-                <span aria-hidden="true">🍽️</span>
-              </div>
-            )}
-            <h2 className="feature-card__title">{meal.name}</h2>
-            <p className="feature-card__meta">
-              {[meal.category, meal.area].filter(Boolean).join(" · ")}
-            </p>
-            <button
-              type="button"
-              className="button secondary"
-              onClick={() => setSelectedMeal(meal)}
-            >
-              Näytä resepti
-            </button>
-          </article>
-        ))}
-      </section>
-
       {selectedMeal && (
         <section
           aria-labelledby="selected-meal-title"
@@ -310,6 +280,36 @@ export default function MealSearchPage() {
           {saveError && <p role="alert">{saveError}</p>}
         </section>
       )}
+
+      <section aria-label="Hakutulokset" className="feature-grid">
+        {meals.map((meal) => (
+          <article key={meal.id} className="feature-card">
+            {meal.imageUrl ? (
+              <img
+                src={meal.imageUrl}
+                alt=""
+                loading="lazy"
+                className="feature-card__image"
+              />
+            ) : (
+              <div className="feature-card__image feature-card__image--empty">
+                <span aria-hidden="true">🍽️</span>
+              </div>
+            )}
+            <h2 className="feature-card__title">{meal.name}</h2>
+            <p className="feature-card__meta">
+              {[meal.category, meal.area].filter(Boolean).join(" · ")}
+            </p>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => setSelectedMeal(meal)}
+            >
+              Näytä resepti
+            </button>
+          </article>
+        ))}
+      </section>
 
       <footer className="source-note">
         Recipe data and imagery:{" "}

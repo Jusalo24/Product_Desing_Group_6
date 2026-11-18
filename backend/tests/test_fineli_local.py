@@ -1,8 +1,10 @@
 from pathlib import Path
 
 import pytest
+from sqlalchemy.orm import Session
 
 from app import main
+from app import models
 import app.scripts.import_fineli as fineli_importer
 from app.integrations.fineli.local_client import LocalFineliClient
 from app.models import FineliFood
@@ -222,6 +224,40 @@ def test_recalculate_converts_local_food_quantity_from_kilograms(local_client) -
     assert response.status_code == 200
     assert response.json()["values"]["fat_g"] == pytest.approx(1000)
     assert response.json()["values"]["energy_kj"] == pytest.approx(37000)
+
+
+def test_auto_match_recalculates_quantity_for_existing_match_with_missing_quantity(
+    local_client,
+) -> None:
+    recipe = local_client.post(
+        "/api/recipes",
+        json={
+            "title": "Breadcrumbs",
+            "ingredients": [
+                {"name": "breadcrumbs", "amount": "100g fine", "fineli_id": "1"}
+            ],
+        },
+    ).json()
+    ingredient_id = recipe["ingredients"][0]["id"]
+
+    with Session(main.engine) as db:
+        ingredient = db.get(models.Ingredient, ingredient_id)
+        assert ingredient is not None
+        ingredient.quantity = None
+        ingredient.unit = None
+        ingredient.conversion_status = "unknown"
+        db.commit()
+
+    response = local_client.post(
+        f"/api/recipes/{recipe['id']}/ingredients/auto-match"
+    )
+
+    assert response.status_code == 200
+    matched = response.json()["ingredients"][0]
+    assert matched["fineli_id"] == "1"
+    assert matched["quantity"] == 100
+    assert matched["unit"] == "g"
+    assert matched["conversion_status"] == "exact"
 
 
 def test_recalculate_sums_multiple_local_food_ingredients(local_client) -> None:

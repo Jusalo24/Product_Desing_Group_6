@@ -80,12 +80,11 @@ export default function RecipeDetailPage() {
     };
   }, [id]);
 
-  async function calculateNutrition() {
-    if (!recipe) return;
+  async function refreshNutrition(recipeId: number) {
     setNutritionLoading(true);
     setNutritionError(null);
     try {
-      setNutrition(await api.recalculateNutrition(recipe.id));
+      setNutrition(await api.recalculateNutrition(recipeId));
     } catch (e) {
       setNutritionError(
         e instanceof Error ? e.message : "Could not calculate nutrition.",
@@ -93,6 +92,11 @@ export default function RecipeDetailPage() {
     } finally {
       setNutritionLoading(false);
     }
+  }
+
+  async function calculateNutrition() {
+    if (!recipe) return;
+    await refreshNutrition(recipe.id);
   }
 
   async function findFineliMatches(ingredientId: number, name: string) {
@@ -128,7 +132,13 @@ export default function RecipeDetailPage() {
           : current,
       );
       setNutrition(null);
-      setSuggestions((current) => ({ ...current, [ingredientId]: [] }));
+      setSuggestions((current) => {
+        const next = { ...current };
+        delete next[ingredientId];
+        return next;
+      });
+      setMatchingIngredientId(null);
+      await refreshNutrition(recipe.id);
     } catch (err) {
       setMatchErrors((errors) => ({
         ...errors,
@@ -147,6 +157,7 @@ export default function RecipeDetailPage() {
       const updated = await api.autoMatchIngredients(recipe.id);
       setRecipe(updated);
       setNutrition(null);
+      await refreshNutrition(updated.id);
     } catch (err) {
       setIngredientError(
         err instanceof Error ? err.message : "Could not auto-match ingredients.",
