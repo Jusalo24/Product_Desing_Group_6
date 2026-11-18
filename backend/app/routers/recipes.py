@@ -128,13 +128,77 @@ def update_ingredients(
             "Ingredient editing cannot add or remove ingredients",
         )
 
-    for existing, ingredient in zip(recipe.ingredients, payload.ingredients):
-        existing.name = ingredient.name
-        existing.amount = ingredient.amount
-        existing.quantity = ingredient.quantity
-        existing.unit = ingredient.unit
-        existing.fineli_id = ingredient.fineli_id
-        existing.conversion_status = "matched" if ingredient.fineli_id else "unmatched"
+    client = get_fineli_client(db)
+    try:
+        for existing, ingredient in zip(recipe.ingredients, payload.ingredients):
+            existing.name = ingredient.name
+            existing.amount = ingredient.amount
+            existing.fineli_id = ingredient.fineli_id
+
+            if not ingredient.fineli_id:
+                existing.fineli_name = None
+                existing.quantity = None
+                existing.unit = None
+                existing.conversion_status = "unmatched"
+                continue
+
+            food = None
+            try:
+                food = client.get_food(ingredient.fineli_id)
+            except FineliFoodNotFound:
+                existing.fineli_name = None
+
+            if ingredient.quantity is not None and ingredient.unit is not None:
+                existing.quantity = ingredient.quantity
+                existing.unit = ingredient.unit
+                existing.conversion_status = "exact"
+
+                if food is not None:
+                    existing.fineli_name = food["name"]
+                    conversion = convert_measure_to_grams(
+                        ingredient.amount,
+                        food.get("units", []),
+                        ingredient_name=ingredient.name,
+                    )
+                    if conversion is not None and conversion.status == "negligible":
+                        existing.quantity = None
+                        existing.unit = None
+                        existing.conversion_status = "negligible"
+                    elif conversion is not None and conversion.grams is not None:
+                        payload_grams = (
+                            ingredient.quantity * 1000
+                            if ingredient.unit == "kg"
+                            else ingredient.quantity
+                        )
+                        if abs(payload_grams - conversion.grams) > 1e-6:
+                            existing.quantity = conversion.grams
+                            existing.unit = "g"
+                            existing.conversion_status = conversion.status
+            elif food is not None:
+                existing.fineli_name = food["name"]
+                conversion = convert_measure_to_grams(
+                    ingredient.amount,
+                    food.get("units", []),
+                    ingredient_name=ingredient.name,
+                )
+                if conversion is None:
+                    existing.quantity = None
+                    existing.unit = None
+                    existing.conversion_status = "unknown"
+                elif conversion.status == "negligible" or conversion.grams is None:
+                    existing.quantity = None
+                    existing.unit = None
+                    existing.conversion_status = "negligible"
+                else:
+                    existing.quantity = conversion.grams
+                    existing.unit = "g"
+                    existing.conversion_status = conversion.status
+            else:
+                existing.quantity = None
+                existing.unit = None
+                existing.conversion_status = "unknown"
+    finally:
+        client.close()
     _invalidate_nutrition_cache(recipe_id, db)
     db.commit()
     db.refresh(recipe)
