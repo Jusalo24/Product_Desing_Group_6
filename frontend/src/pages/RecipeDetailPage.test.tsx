@@ -379,4 +379,32 @@ describe("RecipeDetailPage ingredient matching", () => {
       await screen.findByText("Coverage: 1 of 2 ingredients (100%) · 1 negligible"),
     ).toBeVisible();
   });
+
+  it("shows an error alert when deleting a recipe fails", async () => {
+    vi.stubGlobal("confirm", () => true);
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3" && init?.method === "DELETE") {
+        return jsonResponse({}, 500);
+      }
+      if (url.pathname === "/api/recipes/3") return jsonResponse(recipe);
+      if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse({}, 404);
+      return jsonResponse({}, 404);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not delete recipe",
+    );
+  });
 });

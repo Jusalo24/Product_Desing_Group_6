@@ -39,6 +39,8 @@ export default function RecipeDetailPage() {
   const [busyIngredientIds, setBusyIngredientIds] = useState<Record<number, boolean>>({});
   const [autoMatching, setAutoMatching] = useState(false);
   const [matchErrors, setMatchErrors] = useState<Record<number, string>>({});
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -189,8 +191,20 @@ export default function RecipeDetailPage() {
 
   async function handleDelete() {
     if (!recipe || !window.confirm("Delete this recipe?")) return;
-    await api.deleteRecipe(recipe.id);
-    navigate("/my-recipes");
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await api.deleteRecipe(recipe.id);
+      navigate("/my-recipes");
+    } catch (e) {
+      setDeleteError(
+        e instanceof Error
+          ? `Could not delete recipe: ${e.message}`
+          : "Could not delete recipe.",
+      );
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function startEditingIngredients() {
@@ -422,9 +436,9 @@ export default function RecipeDetailPage() {
                         : "Find Fineli match"}
                   </button>
                   {openMatchPanels[i.id] && (
-                    <div>
+                    <div className="fineli-match-panel">
                       <form
-                        className="ingredient-edit-actions"
+                        className="fineli-match-search"
                         onSubmit={(event) => {
                           event.preventDefault();
                           void findFineliMatches(i.id, matchQueries[i.id] ?? i.name);
@@ -459,7 +473,7 @@ export default function RecipeDetailPage() {
                       </form>
                       {matchErrors[i.id] && <p className="error">{matchErrors[i.id]}</p>}
                       {suggestions[i.id]?.length ? (
-                        <ul aria-label={`Fineli suggestions for ${i.name}`}>
+                        <ul className="fineli-suggestions" aria-label={`Fineli suggestions for ${i.name}`}>
                           {suggestions[i.id].map((food) => (
                             <li key={food.id}>
                               <strong>{food.name}</strong>
@@ -615,8 +629,17 @@ export default function RecipeDetailPage() {
         <p className="instructions">{recipe.instructions || "No instructions added yet."}</p>
       </section>
 
-      <button className="button danger detail-delete" onClick={handleDelete}>
-        Delete
+      {deleteError && (
+        <p className="error" role="alert">
+          {deleteError}
+        </p>
+      )}
+      <button
+        className="button danger detail-delete"
+        onClick={handleDelete}
+        disabled={deleting}
+      >
+        {deleting ? "Deleting…" : "Delete"}
       </button>
     </article>
   );

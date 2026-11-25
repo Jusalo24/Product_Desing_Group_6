@@ -62,22 +62,22 @@ describe("MealSearchPage", () => {
       "chicken & rice",
     );
 
-    await user.click(screen.getByRole("button", { name: "Näytä resepti" }));
+    await user.click(screen.getByRole("button", { name: "View recipe" }));
 
     expect(container.querySelector(".selected-meal")?.nextElementSibling).toBe(
-      screen.getByRole("region", { name: "Hakutulokset" }),
+      screen.getByRole("region", { name: "Search results" }),
     );
     expect(screen.getByText("1 pound penne rigate")).toBeVisible();
     expect(screen.getByText("olive oil")).toBeVisible();
     expect(screen.getByText(/Boil the pasta\./)).toBeVisible();
     expect(
-      screen.getByRole("link", { name: "Avaa resepti TheMealDB:ssä" }),
+      screen.getByRole("link", { name: "Open recipe on TheMealDB" }),
     ).toHaveAttribute("href", "https://www.themealdb.com/meal/52771");
-    expect(screen.getByRole("link", { name: "Alkuperäinen lähde" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Original source" })).toHaveAttribute(
       "href",
       "https://example.com/recipe",
     );
-    expect(screen.getByRole("link", { name: "Katso video-ohje" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Watch video tutorial" })).toHaveAttribute(
       "href",
       meal.youtubeUrl,
     );
@@ -88,7 +88,7 @@ describe("MealSearchPage", () => {
     renderPage();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Reseptejä ei löytynyt.",
+      "No recipes found.",
     );
   });
 
@@ -107,7 +107,7 @@ describe("MealSearchPage", () => {
     );
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Näytä resepti" }));
+    await user.click(await screen.findByRole("button", { name: "View recipe" }));
     await user.click(screen.getByRole("button", { name: "Save recipe for nutrition" }));
 
     expect(await screen.findByText("Saved recipe page")).toBeVisible();
@@ -141,7 +141,7 @@ describe("MealSearchPage", () => {
     renderPage();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Reseptien haku epäonnistui: External recipe provider unavailable",
+      "Recipe search failed: External recipe provider unavailable",
     );
   });
 
@@ -150,7 +150,7 @@ describe("MealSearchPage", () => {
     renderPage();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "TheMealDB palautti odottamattoman vastauksen.",
+      "TheMealDB returned an unexpected response.",
     );
   });
 
@@ -163,7 +163,7 @@ describe("MealSearchPage", () => {
     );
     renderPage();
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Haetaan...");
+    expect(await screen.findByRole("status")).toHaveTextContent("Loading...");
     resolveResponse(jsonResponse([]));
     await waitFor(() => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();

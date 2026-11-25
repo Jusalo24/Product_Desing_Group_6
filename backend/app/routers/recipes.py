@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
@@ -143,6 +143,25 @@ def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
     recipe = db.get(models.Recipe, recipe_id)
     if recipe is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    run_ids = select(models.NutritionCalculationRun.id).where(
+        models.NutritionCalculationRun.recipe_id == recipe_id
+    )
+    db.execute(delete(models.NutritionFact).where(models.NutritionFact.recipe_id == recipe_id))
+    db.execute(
+        delete(models.NutritionCalculationItem).where(
+            models.NutritionCalculationItem.run_id.in_(run_ids)
+        )
+    )
+    db.execute(
+        delete(models.NutritionIngredientResult).where(
+            models.NutritionIngredientResult.run_id.in_(run_ids)
+        )
+    )
+    db.execute(
+        delete(models.NutritionCalculationRun).where(
+            models.NutritionCalculationRun.recipe_id == recipe_id
+        )
+    )
     db.delete(recipe)
     db.commit()
 
@@ -208,10 +227,10 @@ def update_ingredients(
                             if ingredient.unit == "kg"
                             else ingredient.quantity
                         )
-                        if abs(payload_grams - conversion.grams) > 1e-6:
+                        existing.conversion_status = conversion.status
+                        if abs(payload_grams - conversion.grams) > 1e-3:
                             existing.quantity = conversion.grams
                             existing.unit = "g"
-                            existing.conversion_status = conversion.status
             elif food is not None:
                 existing.fineli_name = food["name"]
                 conversion = convert_measure_to_grams(
