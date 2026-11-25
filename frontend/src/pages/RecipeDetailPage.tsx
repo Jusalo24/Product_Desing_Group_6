@@ -278,15 +278,14 @@ export default function RecipeDetailPage() {
   if (error) return <p className="error">Could not load recipe: {error}</p>;
   if (!recipe) return <p>Loading…</p>;
 
-  const detailedGroups = groupNutrients(nutrition?.detailed_totals ?? []);
-  const legacyNutrients = Object.entries(nutrition?.values ?? {})
-    .filter((entry): entry is [string, number] => entry[1] !== null)
-    .map(([key, value]) => ({
-      name: legacyNutrientNames[key] ?? key,
-      unit: legacyNutrientUnits[key] ?? "",
-      value,
-      perServing: nutrition?.per_serving_values?.[key] ?? null,
-    }));
+  const coreNutrients = buildCoreNutrients(
+    nutrition?.values,
+    nutrition?.per_serving_values,
+  );
+  const micronutrients = (nutrition?.detailed_totals ?? []).filter(
+    (nutrient) => !MACRO_COMPONENT_CODES.has(nutrient.code),
+  );
+  const micronutrientGroups = groupNutrients(micronutrients);
 
   return (
     <article className="recipe-detail">
@@ -542,63 +541,75 @@ export default function RecipeDetailPage() {
                 </p>
               ) : (
                 <>
-                  {detailedGroups.size > 0 ? (
-                    Array.from(detailedGroups.entries()).map(([group, nutrients]) => (
-                      <section key={group}>
-                        <h3>{group}</h3>
-                        <ul>
-                          {nutrients.map((nutrient) => (
-                            <li key={`${nutrient.code}-${nutrient.unit}`}>
-                              <strong>{nutrient.name}:</strong>{" "}
-                              {formatNutrient(nutrient.value, nutrient.unit)}
-                              {nutrient.per_serving != null &&
-                                ` (per serving: ${formatNutrient(nutrient.per_serving, nutrient.unit)})`}
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-                    ))
-                  ) : (
-                    <dl className="nutrition-grid">
-                      {legacyNutrients.map((nutrient) => (
-                        <NutritionValue
-                          key={nutrient.name}
-                          label={nutrient.name}
-                          value={nutrient.value}
-                          unit={nutrient.unit}
-                        />
-                      ))}
-                    </dl>
+                  <ul className="nutrition-facts" aria-label="Nutrition summary">
+                    {coreNutrients.map((row) => (
+                      <li
+                        key={row.key}
+                        className={row.indented ? "nutrition-fact-sub" : "nutrition-fact"}
+                      >
+                        <span className="nutrition-fact-label">{row.label}</span>
+                        <span className="nutrition-fact-values">
+                          <strong>{row.totalText}</strong>
+                          {row.perServingText && (
+                            <span className="muted-copy">
+                              per serving: {row.perServingText}
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {micronutrientGroups.size > 0 && (
+                    <details className="nutrition-details">
+                      <summary>Vitamins &amp; minerals ({micronutrients.length})</summary>
+                      <div className="nutrition-details-body">
+                        {Array.from(micronutrientGroups.entries()).map(([group, nutrients]) => (
+                          <section key={group}>
+                            <h3>{group}</h3>
+                            <ul className="nutrition-micronutrient-list">
+                              {nutrients.map((nutrient) => (
+                                <li key={`${nutrient.code}-${nutrient.unit}`}>
+                                  <span>{nutrient.name}</span>
+                                  <span>
+                                    {formatNutrient(nutrient.value, nutrient.unit)}
+                                    {nutrient.per_serving != null &&
+                                      ` (per serving: ${formatNutrient(nutrient.per_serving, nutrient.unit)})`}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
+                        ))}
+                      </div>
+                    </details>
                   )}
                 </>
               )}
               <h3>Ingredient contributions</h3>
-              <ul aria-label="Ingredient nutrition results">
-                {nutrition.ingredient_results.map((result) => (
-                  <li key={result.ingredient_id}>
-                    <strong>{result.ingredient_name}</strong>
-                    {result.status === "included" ? (
-                      <>
-                        <p>
-                          Fineli match: {result.fineli_name ?? result.fineli_id}
-                          {result.quantity_grams != null &&
-                            ` · ${formatNutrient(result.quantity_grams, "g")}`}
-                        </p>
-                        {result.nutrients.length > 0 && (
-                          <ul>
-                            {result.nutrients.map((nutrient) => (
-                              <li key={`${nutrient.code}-${nutrient.unit}`}>
-                                {nutrient.name}: {formatNutrient(nutrient.value, nutrient.unit)}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </>
-                    ) : (
-                      <p>Skipped: {skippedReason(result)}</p>
-                    )}
-                  </li>
-                ))}
+              <ul className="ingredient-contributions" aria-label="Ingredient nutrition results">
+                {nutrition.ingredient_results.map((result) => {
+                  const macroSummary =
+                    result.status === "included"
+                      ? summarizeIngredientMacros(result.nutrients)
+                      : null;
+                  return (
+                    <li key={result.ingredient_id}>
+                      <strong>{result.ingredient_name}</strong>
+                      {result.status === "included" ? (
+                        <>
+                          <p>
+                            Fineli match: {result.fineli_name ?? result.fineli_id}
+                            {result.quantity_grams != null &&
+                              ` · ${formatNutrient(result.quantity_grams, "g")}`}
+                          </p>
+                          {macroSummary && <p className="muted-copy">{macroSummary}</p>}
+                        </>
+                      ) : (
+                        <p>Skipped: {skippedReason(result)}</p>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </>
           ) : (
@@ -645,46 +656,109 @@ export default function RecipeDetailPage() {
   );
 }
 
-function NutritionValue({
-  label,
-  value,
-  unit,
-}: {
+const MACRO_COMPONENT_CODES = new Set([
+  "ENERC",
+  "PROT",
+  "CHOAVL",
+  "CHOCDF",
+  "FAT",
+  "FIBC",
+  "FIBT",
+  "NACL",
+  "SUGAR",
+  "FASAT",
+]);
+
+const CORE_NUTRIENT_ROWS: {
+  key: string;
   label: string;
-  value: number | null | undefined;
   unit: string;
-}) {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{value == null ? "—" : `${value.toFixed(1)} ${unit}`}</dd>
-    </div>
-  );
+  indented?: boolean;
+}[] = [
+  { key: "fat_g", label: "Fat", unit: "g" },
+  { key: "saturated_fat_g", label: "of which saturates", unit: "g", indented: true },
+  { key: "carbohydrates_g", label: "Carbohydrates", unit: "g" },
+  { key: "sugars_g", label: "of which sugars", unit: "g", indented: true },
+  { key: "fiber_g", label: "Fibre", unit: "g" },
+  { key: "protein_g", label: "Protein", unit: "g" },
+  { key: "salt_g", label: "Salt", unit: "g" },
+];
+
+type CoreNutrientRow = {
+  key: string;
+  label: string;
+  totalText: string;
+  perServingText: string | null;
+  indented?: boolean;
+};
+
+function buildCoreNutrients(
+  values: Record<string, number | null> | undefined,
+  perServing: Record<string, number | null> | undefined | null,
+): CoreNutrientRow[] {
+  if (!values) return [];
+  const rows: CoreNutrientRow[] = [];
+
+  const kcal = values.energy_kcal;
+  const kj = values.energy_kj;
+  if (kcal != null || kj != null) {
+    const totalText =
+      kcal != null && kj != null
+        ? `${formatNutrient(kcal, "kcal")} (${formatNutrient(kj, "kJ")})`
+        : kcal != null
+          ? formatNutrient(kcal, "kcal")
+          : formatNutrient(kj as number, "kJ");
+    const psKcal = perServing?.energy_kcal;
+    const psKj = perServing?.energy_kj;
+    const perServingText =
+      psKcal != null
+        ? formatNutrient(psKcal, "kcal")
+        : psKj != null
+          ? formatNutrient(psKj, "kJ")
+          : null;
+    rows.push({ key: "energy", label: "Energy", totalText, perServingText });
+  }
+
+  for (const spec of CORE_NUTRIENT_ROWS) {
+    const val = values[spec.key];
+    if (val == null) continue;
+    const ps = perServing?.[spec.key];
+    rows.push({
+      key: spec.key,
+      label: spec.label,
+      totalText: formatNutrient(val, spec.unit),
+      perServingText: ps != null ? formatNutrient(ps, spec.unit) : null,
+      indented: spec.indented,
+    });
+  }
+  return rows;
 }
 
-const legacyNutrientNames: Record<string, string> = {
-  energy_kcal: "Energy",
-  energy_kj: "Energy",
-  protein_g: "Protein",
-  carbohydrates_g: "Carbohydrates",
-  fat_g: "Fat",
-  fiber_g: "Fiber",
-  salt_g: "Salt",
-  sugars_g: "Sugars",
-  saturated_fat_g: "Saturated fat",
-};
+function summarizeIngredientMacros(nutrients: DetailedNutrientTotal[]): string | null {
+  const byCode = new Map(nutrients.map((n) => [n.code, n]));
+  const parts: string[] = [];
 
-const legacyNutrientUnits: Record<string, string> = {
-  energy_kcal: "kcal",
-  energy_kj: "kJ",
-  protein_g: "g",
-  carbohydrates_g: "g",
-  fat_g: "g",
-  fiber_g: "g",
-  salt_g: "g",
-  sugars_g: "g",
-  saturated_fat_g: "g",
-};
+  const enerc = byCode.get("ENERC");
+  if (enerc) {
+    const kcal =
+      enerc.unit.toLowerCase() === "kcal"
+        ? enerc.value
+        : enerc.unit.toLowerCase() === "kj"
+          ? enerc.value / 4.184
+          : null;
+    if (kcal != null) {
+      parts.push(formatNutrient(kcal, "kcal"));
+    }
+  }
+  const prot = byCode.get("PROT");
+  if (prot) parts.push(`Protein ${formatNutrient(prot.value, prot.unit)}`);
+  const cho = byCode.get("CHOAVL");
+  if (cho) parts.push(`Carbs ${formatNutrient(cho.value, cho.unit)}`);
+  const fat = byCode.get("FAT");
+  if (fat) parts.push(`Fat ${formatNutrient(fat.value, fat.unit)}`);
+
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
 
 const skippedReasons: Record<string, string> = {
   unmatched: "No Fineli food selected",

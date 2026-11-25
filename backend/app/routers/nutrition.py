@@ -16,6 +16,38 @@ from app.integrations.fineli.measure import convert_measure_to_grams
 router = APIRouter(prefix="/recipes", tags=["nutrition"])
 NUTRIENT_FIELDS = tuple(schemas.NutritionValues.model_fields)
 
+# Only keep core macros (for totals/per-ingredient summaries) and key vitamins & minerals.
+ALLOWED_DETAILED_CODES = frozenset(
+    {
+        # Core macros
+        "ENERC",
+        "PROT",
+        "CHOAVL",
+        "FAT",
+        "FIBC",
+        "FIBT",
+        "NACL",
+        "SUGAR",
+        "FASAT",
+        # Key vitamins
+        "VITA",
+        "VITC",
+        "VITD",
+        "VITE",
+        "FOL",
+        "VITB12",
+        "THIA",
+        "RIBF",
+        # Key minerals
+        "CA",
+        "FE",
+        "K",
+        "MG",
+        "ZN",
+        "ID",
+    }
+)
+
 
 def _grams(quantity: float, unit: str) -> float:
     return quantity * 1000 if unit == "kg" else quantity
@@ -76,7 +108,11 @@ def _ingredient_results(
             ),
             "status": result.status,
             "reason": result.reason,
-            "nutrients": result.nutrient_contributions or [],
+            "nutrients": [
+                nutrient
+                for nutrient in (result.nutrient_contributions or [])
+                if nutrient.get("code") in ALLOWED_DETAILED_CODES
+            ],
         }
         for result, ingredient_name in rows
     ]
@@ -242,11 +278,14 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
                     contribution = float(value) * grams / 100
                     totals[field] = (totals[field] or 0.0) + contribution
             for nutrient in food.get("detailed_nutrients", []):
+                code = nutrient.get("code")
+                if code not in ALLOWED_DETAILED_CODES:
+                    continue
                 value = nutrient.get("value_per_100g")
                 if value is None:
                     continue
                 contribution = float(value) * grams / 100
-                code, unit = nutrient["code"], nutrient["unit"]
+                unit = nutrient["unit"]
                 key = (code, unit)
                 total = detailed_totals.setdefault(
                     key,

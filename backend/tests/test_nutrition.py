@@ -298,3 +298,33 @@ def test_fineli_match_converts_volume_fallback_and_negligible_measure(client, mo
         None,
         "negligible_measure",
     ]
+
+
+def test_recalculate_filters_out_unwanted_fineli_components(client, monkeypatch) -> None:
+    food = fineli_food()
+    food["detailed_nutrients"] = [
+        {"code": "ENERC", "name": "Energy, calculated", "unit": "kJ", "group": "Energy", "value_per_100g": 418},
+        {"code": "PROT", "name": "Protein", "unit": "g", "group": "Macro-components", "value_per_100g": 10},
+        {"code": "ALC", "name": "Alcohol", "unit": "g", "group": "Alcohol", "value_per_100g": 0},
+        {"code": "ASH", "name": "Ash (minerals)", "unit": "g", "group": "Ash", "value_per_100g": 1.2},
+        {"code": "WATER", "name": "Water (moisture)", "unit": "g", "group": "Water", "value_per_100g": 70},
+        {"code": "F18D2CN6", "name": "Fatty acid 18:2", "unit": "mg", "group": "Fatty acids", "value_per_100g": 500},
+        {"code": "VITC", "name": "Vitamin C", "unit": "mg", "group": "Water soluble vitamins", "value_per_100g": 12},
+        {"code": "FE", "name": "Iron", "unit": "mg", "group": "Trace elements", "value_per_100g": 2.5},
+    ]
+    monkeypatch.setattr(LocalFineliClient, "get_food", lambda self, food_id: food)
+    recipe_id, _ = create_recipe(client)
+
+    calc = client.post(f"/api/recipes/{recipe_id}/nutrition/recalculate")
+    assert calc.status_code == 200
+    body = calc.json()
+    codes = [item["code"] for item in body["detailed_totals"]]
+    assert codes == ["ENERC", "FE", "PROT", "VITC"]
+    ing_codes = [item["code"] for item in body["ingredient_results"][0]["nutrients"]]
+    assert ing_codes == ["ENERC", "PROT", "VITC", "FE"]
+    assert "ALC" not in codes
+    assert "WATER" not in codes
+
+    saved = client.get(f"/api/recipes/{recipe_id}/nutrition")
+    assert saved.status_code == 200
+    assert [item["code"] for item in saved.json()["detailed_totals"]] == ["ENERC", "FE", "PROT", "VITC"]

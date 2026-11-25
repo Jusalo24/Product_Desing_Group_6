@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import RecipeDetailPage from "./RecipeDetailPage";
+import type { NutritionResponse } from "../types";
 
 const ingredient = {
   id: 9,
@@ -406,5 +407,72 @@ describe("RecipeDetailPage ingredient matching", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not delete recipe",
     );
+  });
+
+  it("renders summary facts, collapsible vitamins & minerals, and compact ingredient macros", async () => {
+    const richEstimate: NutritionResponse = {
+      ...partialEstimate,
+      values: {
+        ...partialEstimate.values,
+        saturated_fat_g: 1.2,
+        sugars_g: 3.4,
+        fiber_g: 2.5,
+        salt_g: 0.5,
+      },
+      detailed_totals: [
+        ...partialEstimate.detailed_totals,
+        { code: "VITC", name: "Vitamin C", unit: "mg", value: 15, group: "Water soluble vitamins", per_serving: 7.5 },
+        { code: "FE", name: "Iron", unit: "mg", value: 2.2, group: "Trace elements", per_serving: 1.1 },
+      ],
+      ingredient_results: [
+        {
+          ingredient_id: 9,
+          ingredient_name: "olive oil",
+          fineli_id: "100",
+          fineli_name: "Olive oil",
+          quantity_grams: 13.5,
+          status: "included",
+          reason: null,
+          nutrients: [
+            { code: "ENERC", name: "Energy", unit: "kJ", value: 502.08, group: "Energy", per_serving: null },
+            { code: "PROT", name: "Protein", unit: "g", value: 0, group: "Macro", per_serving: null },
+            { code: "CHOAVL", name: "Carbohydrate", unit: "g", value: 0, group: "Macro", per_serving: null },
+            { code: "FAT", name: "Fat", unit: "g", value: 13.5, group: "Macro", per_serving: null },
+            { code: "VITC", name: "Vitamin C", unit: "mg", value: 15, group: "Vitamins", per_serving: null },
+          ],
+        },
+      ],
+    };
+    nutritionForPage = richEstimate as unknown as typeof partialEstimate;
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const summary = await screen.findByRole("list", { name: "Nutrition summary" });
+    expect(within(summary).getByText("Energy")).toBeVisible();
+    expect(within(summary).getByText("of which saturates")).toBeVisible();
+    expect(within(summary).getByText("of which sugars")).toBeVisible();
+    expect(within(summary).getByText("Fibre")).toBeVisible();
+    expect(within(summary).getByText("Salt")).toBeVisible();
+
+    // Collapsible vitamins & minerals starts closed and opens on click
+    const toggle = screen.getByText("Vitamins & minerals (2)");
+    const details = toggle.closest("details");
+    expect(details).not.toHaveAttribute("open");
+    await userEvent.setup().click(toggle);
+    expect(details).toHaveAttribute("open");
+    expect(screen.getByText("Vitamin C")).toBeVisible();
+    expect(screen.getByText("Iron")).toBeVisible();
+
+    // Compact 1-line ingredient macro summary (kcal converted from kJ)
+    const contributions = screen.getByRole("list", { name: "Ingredient nutrition results" });
+    expect(
+      within(contributions).getByText("120 kcal · Protein 0 g · Carbs 0 g · Fat 13.5 g"),
+    ).toBeVisible();
   });
 });
