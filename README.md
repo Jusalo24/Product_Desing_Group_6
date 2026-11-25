@@ -10,9 +10,9 @@ School project: a recipe search, management, and nutrition estimation web applic
 
 ## Features
 
-- **External recipe search & import (TheMealDB)**: Search meals on the homepage (`/`, `/meals/search`), view recipe details with images and source attribution, and import them into your local recipe library (`POST /api/external-recipes/id/{external_id}/import`, deduplicated by provider ID). Additional browse/filter/lookup routes live under `/api/external-recipes/...`.
+- **External recipe search & import (TheMealDB)**: Search meals on the homepage (`/`, `/meals/search`), view recipe details with images and source attribution, and import them into your local recipe library (`POST /api/external-recipes/id/{external_id}/import`, deduplicated by provider ID).
 - **Custom recipes & ingredient editing**: Create your own recipes (`/new`) with optional Fineli food matching, browse saved recipes (`/my-recipes`), edit saved ingredient quantities and units (`PUT /api/recipes/{id}/ingredients` via **Edit ingredients**), and delete recipes.
-- **Fineli ingredient matching (auto & manual)**: Automatically match imported or unmapped ingredients (`POST /api/recipes/{id}/ingredients/auto-match`) using curated TheMealDB-to-Fineli mappings (`ingredient_mappings`) and exact basic-food lookups, or manually search and confirm candidates per ingredient (`/api/ingredients/suggestions`, `/api/ingredients/search`, `PUT /api/recipes/{id}/ingredients/{ingredient_id}/nutrition-source`).
+- **Fineli ingredient matching (auto & manual)**: Automatically match imported or unmapped ingredients (`POST /api/recipes/{id}/ingredients/auto-match`) using curated TheMealDB-to-Fineli mappings (`ingredient_mappings`) and exact basic-food lookups, or manually search and confirm candidates per ingredient (`/api/ingredients/search`, `PUT /api/recipes/{id}/ingredients/{ingredient_id}/nutrition-source`).
 - **Unit & measure conversions**: Parse recipe amounts (metric `g`/`kg`/`ml`/`l`, fractions, negligible phrases like `"to taste"`, and Fineli household units from `fineli_food_units`) into grams with explicit `conversion_status` tracking (`exact`, `estimated`, `negligible`, `unknown`, `unmatched`).
 - **Nutrition calculation**: Calculate and store recipe nutrition snapshots (`POST /api/recipes/{id}/nutrition/recalculate`, `GET /api/recipes/{id}/nutrition`), including normalized core macros, per-serving values, detailed Fineli micronutrients, ingredient coverage, and per-ingredient inclusion/skip reasons.
 
@@ -37,17 +37,17 @@ recipe-app/
 │       ├── config.py                # settings from environment / .env
 │       ├── database.py              # engine, session, get_db, additive schema/index helpers
 │       ├── models.py                # SQLAlchemy tables (Recipe, Ingredient, RecipeSource,
-│       │                            #   IngredientMapping, ExternalCacheEntry, Nutrition*, Fineli*)
+│       │                            #   IngredientMapping, Nutrition*, Fineli*)
 │       ├── schemas.py               # Pydantic request/response models
 │       ├── data/                    # curated Fineli aliases & TheMealDB-to-Fineli mappings
 │       ├── integrations/
-│       │   ├── fineli/              # Fineli local/HTTP clients, factory, matching, measure conversion
+│       │   ├── fineli/              # Fineli local client, factory, matching, measure conversion
 │       │   └── themealdb/           # TheMealDB API client
 │       ├── routers/
 │       │   ├── recipes.py           # /api/recipes CRUD, ingredient editing & matching
-│       │   ├── external_recipes.py  # /api/external-recipes browse, lookup & import
+│       │   ├── external_recipes.py  # /api/external-recipes import
 │       │   ├── meals.py             # /api/meals/search endpoint
-│       │   ├── ingredients.py       # /api/ingredients Fineli search & suggestions
+│       │   ├── ingredients.py       # /api/ingredients/search Fineli search
 │       │   └── nutrition.py         # /api/recipes/{id}/nutrition calculation & retrieval
 │       └── scripts/
 │           ├── download_fineli.py   # stages Fineli CSVs from the Rel20 ZIP

@@ -74,22 +74,6 @@ class NutritionCalculationRun(Base):
     )
 
 
-class NutritionCalculationItem(Base):
-    __tablename__ = "nutrition_calculation_items"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    run_id: Mapped[int] = mapped_column(
-        ForeignKey("nutrition_calculation_runs.id", ondelete="CASCADE"), index=True
-    )
-    ingredient_id: Mapped[int] = mapped_column(
-        ForeignKey("ingredients.id", ondelete="CASCADE")
-    )
-    source_id: Mapped[str] = mapped_column(String(100))
-    source_name: Mapped[str] = mapped_column(String(200))
-    source_values: Mapped[dict] = mapped_column(JSON)
-    quantity_grams: Mapped[float] = mapped_column(Numeric(12, 3))
-
-
 class NutritionIngredientResult(Base):
     __tablename__ = "nutrition_ingredient_results"
     __table_args__ = (
@@ -124,19 +108,6 @@ class NutritionFact(Base):
     values: Mapped[dict] = mapped_column(JSON)
     source: Mapped[dict] = mapped_column(JSON)
     calculated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-
-
-class ExternalCacheEntry(Base):
-    __tablename__ = "external_cache_entries"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    provider: Mapped[str] = mapped_column(String(50), index=True)
-    cache_key: Mapped[str] = mapped_column(String(500), unique=True, index=True)
-    response: Mapped[dict] = mapped_column(JSON)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 

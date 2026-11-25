@@ -33,6 +33,24 @@ def _invalidate_nutrition_cache(recipe_id: int, db: Session) -> None:
         run.is_active = False
 
 
+def _get_recipe_or_404(recipe_id: int, db: Session) -> models.Recipe:
+    recipe = db.get(models.Recipe, recipe_id)
+    if recipe is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    return recipe
+
+
+def _convert_ingredient_amount(ingredient: models.Ingredient, food: dict, db: Session):
+    mapping = lookup_mapping(db, ingredient.name)
+    default_weight = mapping.get("default_weight_g") if mapping else None
+    return convert_measure_to_grams(
+        ingredient.amount,
+        food.get("units", []),
+        default_weight_g=default_weight,
+        ingredient_name=ingredient.name,
+    )
+
+
 def apply_fineli_match_to_ingredient(
     ingredient: models.Ingredient,
     food: dict,
@@ -40,21 +58,27 @@ def apply_fineli_match_to_ingredient(
     *,
     quantity: float | None = None,
     unit: str | None = None,
+    reconcile_explicit: bool = False,
 ) -> None:
     """Assign Fineli source metadata and convert ingredient amount into grams."""
     if quantity is not None:
         ingredient.quantity = quantity
         ingredient.unit = unit
         ingredient.conversion_status = "exact"
+        if reconcile_explicit:
+            conversion = _convert_ingredient_amount(ingredient, food, db)
+            if conversion is not None and conversion.status == "negligible":
+                ingredient.quantity = None
+                ingredient.unit = None
+                ingredient.conversion_status = "negligible"
+            elif conversion is not None and conversion.grams is not None:
+                payload_grams = quantity * 1000 if unit == "kg" else quantity
+                ingredient.conversion_status = conversion.status
+                if abs(payload_grams - conversion.grams) > 1e-3:
+                    ingredient.quantity = conversion.grams
+                    ingredient.unit = "g"
     elif ingredient.fineli_id != food["id"] or ingredient.quantity is None:
-        mapping = lookup_mapping(db, ingredient.name)
-        default_weight = mapping.get("default_weight_g") if mapping else None
-        conversion = convert_measure_to_grams(
-            ingredient.amount,
-            food.get("units", []),
-            default_weight_g=default_weight,
-            ingredient_name=ingredient.name,
-        )
+        conversion = _convert_ingredient_amount(ingredient, food, db)
         if conversion is None:
             ingredient.quantity = None
             ingredient.unit = None
@@ -86,10 +110,7 @@ def list_recipes(db: Session = Depends(get_db)):
 
 @router.get("/{recipe_id}", response_model=schemas.RecipeRead)
 def get_recipe(recipe_id: int, db: Session = Depends(get_db)):
-    recipe = db.get(models.Recipe, recipe_id)
-    if recipe is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
-    return recipe
+    return _get_recipe_or_404(recipe_id, db)
 
 
 @router.post("", response_model=schemas.RecipeRead, status_code=status.HTTP_201_CREATED)
@@ -140,18 +161,11 @@ def create_recipe(payload: schemas.RecipeCreate, db: Session = Depends(get_db)):
 
 @router.delete("/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
-    recipe = db.get(models.Recipe, recipe_id)
-    if recipe is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    recipe = _get_recipe_or_404(recipe_id, db)
     run_ids = select(models.NutritionCalculationRun.id).where(
         models.NutritionCalculationRun.recipe_id == recipe_id
     )
     db.execute(delete(models.NutritionFact).where(models.NutritionFact.recipe_id == recipe_id))
-    db.execute(
-        delete(models.NutritionCalculationItem).where(
-            models.NutritionCalculationItem.run_id.in_(run_ids)
-        )
-    )
     db.execute(
         delete(models.NutritionIngredientResult).where(
             models.NutritionIngredientResult.run_id.in_(run_ids)
@@ -172,9 +186,7 @@ def update_ingredients(
     payload: schemas.RecipeIngredientsUpdate,
     db: Session = Depends(get_db),
 ):
-    recipe = db.get(models.Recipe, recipe_id)
-    if recipe is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    recipe = _get_recipe_or_404(recipe_id, db)
     if len(payload.ingredients) != len(recipe.ingredients):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -195,66 +207,32 @@ def update_ingredients(
                 existing.conversion_status = "unmatched"
                 continue
 
-            food = None
             try:
                 food = client.get_food(ingredient.fineli_id)
             except FineliFoodNotFound:
-                existing.fineli_name = None
+                food = None
 
-            mapping = lookup_mapping(db, ingredient.name)
-            default_weight = mapping.get("default_weight_g") if mapping else None
-
-            if ingredient.quantity is not None and ingredient.unit is not None:
-                existing.quantity = ingredient.quantity
-                existing.unit = ingredient.unit
-                existing.conversion_status = "exact"
-
-                if food is not None:
-                    existing.fineli_name = food["name"]
-                    conversion = convert_measure_to_grams(
-                        ingredient.amount,
-                        food.get("units", []),
-                        default_weight_g=default_weight,
-                        ingredient_name=ingredient.name,
-                    )
-                    if conversion is not None and conversion.status == "negligible":
-                        existing.quantity = None
-                        existing.unit = None
-                        existing.conversion_status = "negligible"
-                    elif conversion is not None and conversion.grams is not None:
-                        payload_grams = (
-                            ingredient.quantity * 1000
-                            if ingredient.unit == "kg"
-                            else ingredient.quantity
-                        )
-                        existing.conversion_status = conversion.status
-                        if abs(payload_grams - conversion.grams) > 1e-3:
-                            existing.quantity = conversion.grams
-                            existing.unit = "g"
-            elif food is not None:
-                existing.fineli_name = food["name"]
-                conversion = convert_measure_to_grams(
-                    ingredient.amount,
-                    food.get("units", []),
-                    default_weight_g=default_weight,
-                    ingredient_name=ingredient.name,
+            has_explicit = ingredient.quantity is not None and ingredient.unit is not None
+            if food is not None:
+                existing.fineli_id = None  # force conversion when quantity is None
+                apply_fineli_match_to_ingredient(
+                    existing,
+                    food,
+                    db,
+                    quantity=ingredient.quantity if has_explicit else None,
+                    unit=ingredient.unit if has_explicit else None,
+                    reconcile_explicit=True,
                 )
-                if conversion is None:
+            else:
+                existing.fineli_name = None
+                if has_explicit:
+                    existing.quantity = ingredient.quantity
+                    existing.unit = ingredient.unit
+                    existing.conversion_status = "exact"
+                else:
                     existing.quantity = None
                     existing.unit = None
                     existing.conversion_status = "unknown"
-                elif conversion.status == "negligible" or conversion.grams is None:
-                    existing.quantity = None
-                    existing.unit = None
-                    existing.conversion_status = "negligible"
-                else:
-                    existing.quantity = conversion.grams
-                    existing.unit = "g"
-                    existing.conversion_status = conversion.status
-            else:
-                existing.quantity = None
-                existing.unit = None
-                existing.conversion_status = "unknown"
     finally:
         client.close()
     _invalidate_nutrition_cache(recipe_id, db)
@@ -314,9 +292,7 @@ def match_ingredient(
 @router.post("/{recipe_id}/ingredients/auto-match", response_model=schemas.RecipeRead)
 def auto_match_ingredients(recipe_id: int, db: Session = Depends(get_db)):
     """Match unmapped ingredients and fill quantities for existing matches when possible."""
-    recipe = db.get(models.Recipe, recipe_id)
-    if recipe is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    recipe = _get_recipe_or_404(recipe_id, db)
 
     client = get_fineli_client(db)
     try:

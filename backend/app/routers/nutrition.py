@@ -332,16 +332,6 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
                     )
                 )
                 continue
-            db.add(
-                models.NutritionCalculationItem(
-                    run_id=run.id,
-                    ingredient_id=ingredient.id,
-                    source_id=food["id"],
-                    source_name=food["name"],
-                    source_values=values,
-                    quantity_grams=grams,
-                )
-            )
             ingredient_rows.append(
                 models.NutritionIngredientResult(
                     run_id=run.id,

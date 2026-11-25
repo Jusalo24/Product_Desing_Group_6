@@ -136,7 +136,7 @@ describe("RecipeDetailPage ingredient matching", () => {
       if (url.pathname === "/api/recipes/3/nutrition/recalculate" && init?.method === "POST") {
         return jsonResponse(partialEstimate);
       }
-      if (url.pathname === "/api/ingredients/suggestions") return jsonResponse([candidate]);
+      if (url.pathname === "/api/ingredients/search") return jsonResponse([candidate]);
       if (url.pathname.endsWith("/nutrition-source")) {
         return jsonResponse({
           ...ingredient,
@@ -325,7 +325,7 @@ describe("RecipeDetailPage ingredient matching", () => {
 
     expect(
       fetchMock.mock.calls.some(([input]) =>
-        String(input).includes("/api/ingredients/suggestions?q=extra+virgin"),
+        String(input).includes("/api/ingredients/search?q=extra+virgin"),
       ),
     ).toBe(true);
 
@@ -509,7 +509,7 @@ describe("RecipeDetailPage ingredient matching", () => {
       const url = new URL(String(input), "http://localhost");
       if (url.pathname === "/api/recipes/3") return jsonResponse(recipe);
       if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse(kjEstimate);
-      if (url.pathname === "/api/ingredients/suggestions") return jsonResponse([richCandidate]);
+      if (url.pathname === "/api/ingredients/search") return jsonResponse([richCandidate]);
       return jsonResponse({}, 404);
     });
 

@@ -1,12 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from app.integrations.fineli.client import ExternalProviderError
-from app.integrations.themealdb.client import TheMealDbClient
+from app import schemas
+from app.integrations.themealdb.client import ExternalProviderError, TheMealDbClient
 
 router = APIRouter(prefix="/meals", tags=["meals"])
 
 
-@router.get("/search")
+@router.get("/search", response_model=list[schemas.MealSearchResult])
 def search_meals(q: str = Query(min_length=1, max_length=100)):
     query = q.strip()
     if not query:

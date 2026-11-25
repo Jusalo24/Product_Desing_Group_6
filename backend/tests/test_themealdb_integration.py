@@ -1,14 +1,7 @@
 import httpx
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from app import models
 from app.config import settings
-from app.database import Base
-from app.routers import external_recipes
-from app.integrations.themealdb.client import TheMealDbClient
+from app.integrations.themealdb.client import ExternalProviderError, TheMealDbClient
 
 
 def meal_payload() -> dict:
@@ -145,34 +138,9 @@ def test_themealdb_client_raises_for_invalid_response() -> None:
         )
     )
 
-    from app.integrations.fineli.client import ExternalProviderError
-
     try:
         client.search("anything")
     except ExternalProviderError:
         pass
     else:
         raise AssertionError("Expected ExternalProviderError")
-
-
-def test_themealdb_search_cache_reuses_unexpired_response(monkeypatch) -> None:
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine)
-    session_factory = sessionmaker(bind=engine, autoflush=False)
-    monkeypatch.setattr(external_recipes, "SessionLocal", session_factory)
-    calls = 0
-
-    def loader():
-        nonlocal calls
-        calls += 1
-        return [{"external_id": "1", "source": {"retrieved_at": "now"}}]
-
-    first = external_recipes._cached_meals("search", {"query": "pasta"}, loader)
-    second = external_recipes._cached_meals("search", {"query": "pasta"}, loader)
-
-    assert first == second
-    assert calls == 1
