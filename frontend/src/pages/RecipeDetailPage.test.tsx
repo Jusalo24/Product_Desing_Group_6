@@ -475,4 +475,84 @@ describe("RecipeDetailPage ingredient matching", () => {
       within(contributions).getByText("120 kcal · Protein 0 g · Carbs 0 g · Fat 13.5 g"),
     ).toBeVisible();
   });
+
+  it("converts kilojoule ingredient unit to kcal and prioritizes macro previews on suggestions", async () => {
+    const richCandidate = {
+      ...candidate,
+      detailed_nutrients: [
+        { code: "ALC", name: "Alcohol", unit: "gram", group: "Alcohol", value_per_100g: 0 },
+        { code: "ASH", name: "Ash", unit: "gram", group: "Ash", value_per_100g: 0 },
+        { code: "CA", name: "Calcium", unit: "milligram", group: "Minerals", value_per_100g: 1 },
+        { code: "ENERC", name: "Energy,calculated", unit: "kilojoule", group: "Energy", value_per_100g: 3700 },
+        { code: "FAT", name: "Fat, total", unit: "gram", group: "Fat", value_per_100g: 100 },
+        { code: "PROT", name: "Protein, total", unit: "gram", group: "Protein", value_per_100g: 0 },
+      ],
+    };
+    const kjEstimate = {
+      ...partialEstimate,
+      ingredient_results: [
+        {
+          ingredient_id: 9,
+          ingredient_name: "olive oil",
+          fineli_id: "100",
+          fineli_name: "Olive oil",
+          quantity_grams: 100,
+          status: "included" as const,
+          reason: null,
+          nutrients: [
+            { code: "ENERC", name: "Energy,calculated", unit: "kilojoule", value: 418.4, group: "Energy", per_serving: null },
+          ],
+        },
+      ],
+    };
+    fetchMock.mockImplementation(async (input) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3") return jsonResponse(recipe);
+      if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse(kjEstimate);
+      if (url.pathname === "/api/ingredients/suggestions") return jsonResponse([richCandidate]);
+      return jsonResponse({}, 404);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const contributions = await screen.findByRole("list", {
+      name: "Ingredient nutrition results",
+    });
+    expect(within(contributions).getByText("100 kcal")).toBeVisible();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Find Fineli match" }));
+    const suggestionList = await screen.findByRole("list", {
+      name: "Fineli suggestions for olive oil",
+    });
+    expect(within(suggestionList).getByText(/Energy,calculated: 3700 kilojoule\/100 g/)).toBeVisible();
+    expect(within(suggestionList).queryByText(/Alcohol:/)).not.toBeInTheDocument();
+  });
+
+  it("disables Calculate nutrition when a recipe has no ingredients", async () => {
+    const emptyRecipe = { ...recipe, ingredients: [] };
+    fetchMock.mockImplementation(async (input) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3") return jsonResponse(emptyRecipe);
+      return jsonResponse({}, 404);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByText("Add ingredients before calculating nutrition."),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Calculate nutrition" })).toBeDisabled();
+  });
 });

@@ -481,10 +481,9 @@ export default function RecipeDetailPage() {
                                   {[food.food_type, food.process].filter(Boolean).join(" · ")}
                                 </p>
                               )}
-                              {food.detailed_nutrients.slice(0, 3).length > 0 && (
+                              {previewSuggestionNutrients(food.detailed_nutrients).length > 0 && (
                                 <p>
-                                  {food.detailed_nutrients
-                                    .slice(0, 3)
+                                  {previewSuggestionNutrients(food.detailed_nutrients)
                                     .map(
                                       (nutrient) =>
                                         `${nutrient.name}: ${nutrient.value_per_100g} ${nutrient.unit}/100 g`,
@@ -616,7 +615,14 @@ export default function RecipeDetailPage() {
             <p className="muted-copy">Calculate nutrition from the selected Fineli ingredients.</p>
           )}
           {nutritionError && <p className="error">{nutritionError}</p>}
-          <button className="button nutrition-button" onClick={calculateNutrition} disabled={nutritionLoading}>
+          {recipe.ingredients.length === 0 && (
+            <p className="muted-copy">Add ingredients before calculating nutrition.</p>
+          )}
+          <button
+            className="button nutrition-button"
+            onClick={calculateNutrition}
+            disabled={nutritionLoading || recipe.ingredients.length === 0}
+          >
             {nutritionLoading ? "Calculating…" : nutrition ? "Recalculate nutrition" : "Calculate nutrition"}
           </button>
           {nutrition && <small className="attribution">{nutrition.source.attribution_text}</small>}
@@ -740,10 +746,11 @@ function summarizeIngredientMacros(nutrients: DetailedNutrientTotal[]): string |
 
   const enerc = byCode.get("ENERC");
   if (enerc) {
+    const unit = enerc.unit.toLowerCase();
     const kcal =
-      enerc.unit.toLowerCase() === "kcal"
+      unit === "kcal"
         ? enerc.value
-        : enerc.unit.toLowerCase() === "kj"
+        : unit === "kj" || unit === "kilojoule"
           ? enerc.value / 4.184
           : null;
     if (kcal != null) {
@@ -758,6 +765,30 @@ function summarizeIngredientMacros(nutrients: DetailedNutrientTotal[]): string |
   if (fat) parts.push(`Fat ${formatNutrient(fat.value, fat.unit)}`);
 
   return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+const SUGGESTION_PREVIEW_CODES = ["ENERC", "PROT", "CHOAVL", "FAT"] as const;
+
+function previewSuggestionNutrients(
+  nutrients: FineliFood["detailed_nutrients"],
+): FineliFood["detailed_nutrients"] {
+  const byCode = new Map(nutrients.map((nutrient) => [nutrient.code, nutrient]));
+  const preferred: FineliFood["detailed_nutrients"] = [];
+  for (const code of SUGGESTION_PREVIEW_CODES) {
+    const match = byCode.get(code);
+    if (match) preferred.push(match);
+  }
+  if (preferred.length >= 3) {
+    return preferred.slice(0, 3);
+  }
+  const seen = new Set(preferred.map((nutrient) => nutrient.code));
+  for (const nutrient of nutrients) {
+    if (!seen.has(nutrient.code)) {
+      preferred.push(nutrient);
+      if (preferred.length >= 3) break;
+    }
+  }
+  return preferred;
 }
 
 const skippedReasons: Record<string, string> = {

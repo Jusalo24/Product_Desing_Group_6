@@ -194,6 +194,16 @@ def get_nutrition(recipe_id: int, db: Session = Depends(get_db)):
     run = db.get(models.NutritionCalculationRun, fact.run_id)
     if run is None:
         raise HTTPException(500, "Nutrition calculation history is missing")
+    has_results = (
+        db.scalar(
+            select(models.NutritionIngredientResult.id)
+            .where(models.NutritionIngredientResult.run_id == run.id)
+            .limit(1)
+        )
+        is not None
+    )
+    if recipe.ingredients and (run.calculation_version != "2" or not has_results):
+        return recalculate_nutrition(recipe_id, db)
     return _response(recipe, run, fact, db)
 
 
@@ -268,6 +278,8 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
                     )
                 )
                 continue
+            if not ingredient.fineli_name:
+                ingredient.fineli_name = food["name"]
             sources.append(_source_value(food["source"]))
             grams = _grams(float(ingredient.quantity), ingredient.unit)
             values = food.get("nutrients_per_100g", {})

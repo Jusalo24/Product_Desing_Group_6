@@ -328,3 +328,50 @@ def test_recalculate_filters_out_unwanted_fineli_components(client, monkeypatch)
     saved = client.get(f"/api/recipes/{recipe_id}/nutrition")
     assert saved.status_code == 200
     assert [item["code"] for item in saved.json()["detailed_totals"]] == ["ENERC", "FE", "PROT", "VITC"]
+
+
+def test_get_nutrition_upgrades_legacy_v1_run_and_backfills_fineli_name(
+    client, monkeypatch
+) -> None:
+    from sqlalchemy.orm import Session
+    from app import main, models
+
+    mock_fineli(monkeypatch)
+    recipe_id, ingredient_id = create_recipe(client)
+
+    with Session(main.engine) as db:
+        ing = db.get(models.Ingredient, ingredient_id)
+        assert ing is not None
+        ing.fineli_name = None
+
+        run = models.NutritionCalculationRun(
+            recipe_id=recipe_id,
+            status="completed",
+            calculation_version="1",
+            is_active=True,
+        )
+        db.add(run)
+        db.flush()
+        db.add(
+            models.NutritionFact(
+                recipe_id=recipe_id,
+                run_id=run.id,
+                values={"energy_kcal": 100},
+                source={**fineli_food()["source"], "retrieved_at": "2026-01-01T00:00:00Z"},
+            )
+        )
+        db.commit()
+
+    response = client.get(f"/api/recipes/{recipe_id}/nutrition")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["coverage"] == {
+        "total_ingredients": 1,
+        "included_ingredients": 1,
+        "negligible_ingredients": 0,
+        "ratio": 1.0,
+    }
+    assert body["ingredient_results"][0]["fineli_name"] == "Test food"
+
+    recipe_body = client.get(f"/api/recipes/{recipe_id}").json()
+    assert recipe_body["ingredients"][0]["fineli_name"] == "Test food"

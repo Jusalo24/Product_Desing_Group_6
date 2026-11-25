@@ -39,11 +39,15 @@ export default function RecipeFormPage() {
   const [suggestions, setSuggestions] = useState<Record<number, FineliFood[]>>({});
   const [activeSuggestion, setActiveSuggestion] = useState<Record<number, number>>({});
   const [searching, setSearching] = useState<Record<number, boolean>>({});
+  const [searchedRows, setSearchedRows] = useState<Record<number, boolean>>({});
   const [searchError, setSearchError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchSequence = useRef(0);
   const ingredientListRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const suppressEnterSubmitRef = useRef(false);
+  const suppressTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     function closeSuggestions(event: MouseEvent) {
@@ -54,6 +58,29 @@ export default function RecipeFormPage() {
 
     document.addEventListener("mousedown", closeSuggestions);
     return () => document.removeEventListener("mousedown", closeSuggestions);
+  }, []);
+
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    function preventIngredientEnterSubmit(event: globalThis.KeyboardEvent) {
+      if (
+        event.key === "Enter" &&
+        event.target instanceof HTMLInputElement &&
+        event.target.closest(".ingredient-row") !== null
+      ) {
+        event.preventDefault();
+      }
+    }
+
+    form.addEventListener("keypress", preventIngredientEnterSubmit);
+    return () => {
+      form.removeEventListener("keypress", preventIngredientEnterSubmit);
+      if (suppressTimerRef.current !== null) {
+        window.clearTimeout(suppressTimerRef.current);
+      }
+    };
   }, []);
 
   function updateIngredient(rowKey: number, patch: Partial<IngredientRow>) {
@@ -81,6 +108,7 @@ export default function RecipeFormPage() {
     if (queryRows.length === 0) {
       setSuggestions({});
       setSearching({});
+      setSearchedRows({});
       return;
     }
 
@@ -97,11 +125,15 @@ export default function RecipeFormPage() {
         );
         if (sequence === searchSequence.current) {
           setSuggestions(Object.fromEntries(results));
+          setSearchedRows(
+            Object.fromEntries(queryRows.map(({ rowKey }) => [rowKey, true])),
+          );
         }
       } catch {
         if (sequence === searchSequence.current) {
           setSearchError("Ingredient search failed. Try again.");
           setSuggestions({});
+          setSearchedRows({});
         }
       } finally {
         if (sequence === searchSequence.current) {
@@ -117,6 +149,7 @@ export default function RecipeFormPage() {
     updateIngredient(rowKey, { name: food.name, fineliId: food.id });
     setSuggestions((current) => ({ ...current, [rowKey]: [] }));
     setActiveSuggestion((current) => ({ ...current, [rowKey]: -1 }));
+    setSearchedRows((current) => ({ ...current, [rowKey]: false }));
   }
 
   function changeIngredientName(rowKey: number, name: string) {
@@ -124,6 +157,7 @@ export default function RecipeFormPage() {
     updateIngredient(rowKey, { name, fineliId: null });
     setSuggestions((current) => ({ ...current, [rowKey]: [] }));
     setActiveSuggestion((current) => ({ ...current, [rowKey]: -1 }));
+    setSearchedRows((current) => ({ ...current, [rowKey]: false }));
   }
 
   function handleIngredientKeyDown(
@@ -154,8 +188,18 @@ export default function RecipeFormPage() {
 
     if (event.key === "Enter") {
       event.preventDefault();
-      const selectedIndex = activeSuggestion[rowKey] ?? 0;
-      const selectedSuggestion = options[selectedIndex] ?? options[0];
+      event.stopPropagation();
+      suppressEnterSubmitRef.current = true;
+      if (suppressTimerRef.current !== null) {
+        window.clearTimeout(suppressTimerRef.current);
+      }
+      suppressTimerRef.current = window.setTimeout(() => {
+        suppressEnterSubmitRef.current = false;
+        suppressTimerRef.current = null;
+      }, 300);
+      const activeIndex = activeSuggestion[rowKey] ?? -1;
+      const selectedSuggestion =
+        activeIndex >= 0 ? options[activeIndex] : options[0];
       if (selectedSuggestion) {
         selectIngredient(rowKey, selectedSuggestion);
       }
@@ -179,15 +223,35 @@ export default function RecipeFormPage() {
       delete next[rowKey];
       return next;
     });
+    setSearchedRows((current) => {
+      const next = { ...current };
+      delete next[rowKey];
+      return next;
+    });
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (suppressEnterSubmitRef.current) {
+      return;
+    }
     const incompleteIngredient = ingredients.some(
       (ingredient) => ingredient.name.trim() !== "" && !ingredient.fineliId,
     );
     if (incompleteIngredient) {
       setError("Select each ingredient from the Fineli suggestions.");
+      return;
+    }
+    const hasInvalidQuantity = ingredients.some((ingredient) => {
+      const trimmed = ingredient.quantity.trim();
+      if (!trimmed) {
+        return false;
+      }
+      const parsed = Number(trimmed);
+      return !Number.isFinite(parsed) || parsed <= 0;
+    });
+    if (hasInvalidQuantity) {
+      setError("Amounts must be positive numbers.");
       return;
     }
     setSaving(true);
@@ -217,7 +281,7 @@ export default function RecipeFormPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="form recipe-form">
+    <form ref={formRef} onSubmit={handleSubmit} className="form recipe-form">
       <div className="recipe-header">
         <h1 className="recipe-title-heading" aria-label={title}>
           <input
@@ -302,6 +366,9 @@ export default function RecipeFormPage() {
                       amount: e.target.value,
                     })
                   }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.preventDefault();
+                  }}
                   aria-label={`Amount for ingredient ${i + 1}`}
                 />
               </label>
@@ -319,8 +386,7 @@ export default function RecipeFormPage() {
                   <option value="kg">kg</option>
                 </select>
               </label>
-              <label className="recipe-field ingredient-field">
-                <span className="sr-only">Ingredient {i + 1}</span>
+              <div className="recipe-field ingredient-field">
                 <input
                   placeholder="Search Fineli ingredients"
                   value={row.name}
@@ -338,6 +404,13 @@ export default function RecipeFormPage() {
                   aria-label={`Ingredient ${i + 1}`}
                 />
                 {searching[row.rowKey] && <small className="field-hint">Searching Fineli…</small>}
+                {!searching[row.rowKey] &&
+                  searchedRows[row.rowKey] &&
+                  !row.fineliId &&
+                  (suggestions[row.rowKey]?.length ?? 0) === 0 &&
+                  !searchError && (
+                    <small className="field-hint">No matching Fineli foods found.</small>
+                  )}
                 {!!suggestions[row.rowKey]?.length && (
                   <ul
                     id={`ingredient-suggestions-${row.rowKey}`}
@@ -363,7 +436,7 @@ export default function RecipeFormPage() {
                     ))}
                   </ul>
                 )}
-              </label>
+              </div>
               <button
                 type="button"
                 className="remove-ingredient"
@@ -421,7 +494,19 @@ export default function RecipeFormPage() {
       {error && <p className="error">{error}</p>}
 
       <div className="recipe-actions">
-        <button type="submit" className="button save-recipe" disabled={saving}>
+        <button
+          type="submit"
+          className="button save-recipe"
+          disabled={saving}
+          onClick={() => {
+            suppressEnterSubmitRef.current = false;
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              suppressEnterSubmitRef.current = false;
+            }
+          }}
+        >
           {saving ? "Saving…" : "Save recipe"}
         </button>
       </div>
