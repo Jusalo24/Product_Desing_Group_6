@@ -54,7 +54,7 @@ const partialEstimate = {
     { code: "ENERC", name: "Energy", unit: "kcal", value: 100, group: "Energy", per_serving: 50 },
     { code: "PROT", name: "Protein", unit: "g", value: 10, group: "Macronutrients", per_serving: 5 },
   ],
-  coverage: { total_ingredients: 2, included_ingredients: 1, ratio: 0.5 },
+  coverage: { total_ingredients: 2, included_ingredients: 1, negligible_ingredients: 0, ratio: 0.5 },
   ingredient_results: [
     {
       ingredient_id: 9,
@@ -302,5 +302,81 @@ describe("RecipeDetailPage ingredient matching", () => {
     );
     expect(recalculateCallIndices).toHaveLength(1);
     expect(recalculateCallIndices[0]).toBeGreaterThan(autoMatchCallIndex);
+  });
+
+  it("supports custom Fineli search query and closing the match panel", async () => {
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Find Fineli match" }));
+    const searchInput = await screen.findByRole("searchbox", {
+      name: "Search Fineli for olive oil",
+    });
+    await user.clear(searchInput);
+    await user.type(searchInput, "extra virgin");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes("/api/ingredients/suggestions?q=extra+virgin"),
+      ),
+    ).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(
+      screen.queryByRole("searchbox", { name: "Search Fineli for olive oil" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows Auto-match for matched ingredients with unknown quantity and shows negligible coverage", async () => {
+    const unknownQtyRecipe = {
+      ...recipe,
+      ingredients: [
+        {
+          ...ingredient,
+          fineli_id: "100",
+          fineli_name: "Olive oil",
+          quantity: null,
+          unit: null,
+          conversion_status: "unknown",
+        },
+      ],
+    };
+    nutritionForPage = {
+      ...partialEstimate,
+      coverage: {
+        total_ingredients: 2,
+        included_ingredients: 1,
+        negligible_ingredients: 1,
+        ratio: 1,
+      },
+    };
+    fetchMock.mockImplementation(async (input) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3") return jsonResponse(unknownQtyRecipe);
+      if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse(nutritionForPage);
+      return jsonResponse({}, 404);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Auto-match ingredients" }),
+    ).toBeVisible();
+    expect(
+      await screen.findByText("Coverage: 1 of 2 ingredients (100%) · 1 negligible"),
+    ).toBeVisible();
   });
 });

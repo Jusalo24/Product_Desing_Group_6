@@ -14,6 +14,14 @@ def test_normalizes_modifiers_accents_and_common_plurals() -> None:
     assert normalize_ingredient_name(" Fresh, chopped Spring onions ") == "spring onion"
     assert normalize_ingredient_name("Tomatoes") == "tomato"
     assert normalize_ingredient_name("Hedelmä") == "hedelma"
+    assert normalize_ingredient_name("Peaches") == "peach"
+    assert normalize_ingredient_name("Radishes") == "radish"
+    assert normalize_ingredient_name("Bay Leaves") == "bay leaf"
+    assert normalize_ingredient_name("Asparagus") == "asparagus"
+    assert normalize_ingredient_name("Couscous") == "couscous"
+    assert normalize_ingredient_name("Hummus") == "hummus"
+    assert normalize_ingredient_name("Molasses") == "molasses"
+    assert normalize_ingredient_name("Freshly cubed tomatoes") == "tomato"
 
 
 def test_ingredient_aliases_broaden_search_without_replacing_user_query() -> None:
@@ -166,3 +174,107 @@ def test_search_prefers_basic_food_over_composite_dish(client, tmp_path: Path) -
 
     results = client.get("/api/ingredients/search", params={"q": "apple"}).json()
     assert [food["id"] for food in results] == ["11", "10"]
+
+
+def test_auto_match_skips_low_confidence_and_supports_exact_basic_food(
+    client, tmp_path: Path
+) -> None:
+    _write_fineli_files(tmp_path, FILES)
+    import_fineli(tmp_path, engine=main.engine)
+
+    mappings_file = tmp_path / "low_mappings.json"
+    mappings_file.write_text(
+        json.dumps(
+            [
+                {
+                    "mealdb_name": "mystery berry",
+                    "raw_name": "Mystery Berry",
+                    "fineli_id": "2",
+                    "search_hint": "fruit sugar",
+                    "default_weight_g": None,
+                    "confidence": "low",
+                    "notes": "Low confidence should never auto-match",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    import_mappings(mappings_file, engine=main.engine)
+
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Auto match guardrails",
+            "ingredients": [
+                {"name": "Mystery Berry", "amount": "50 g"},
+                {"name": "Sokeri", "amount": "2 tbsp"},
+            ],
+        },
+    ).json()
+
+    matched = client.post(f"/api/recipes/{created['id']}/ingredients/auto-match")
+    assert matched.status_code == 200
+    mystery, sokeri = matched.json()["ingredients"]
+    assert mystery["fineli_id"] is None
+    assert sokeri["fineli_id"] == "1"
+    assert sokeri["fineli_name"] == "Sugar"
+    assert sokeri["quantity"] == 25.0
+
+
+def test_search_prefers_word_boundary_over_substring_and_uses_aliases(
+    client, tmp_path: Path
+) -> None:
+    files = dict(FILES)
+    files["food.csv"] = (
+        "FOODID;FOODNAME;FOODTYPE;PROCESS;EDPORT;IGCLASS;IGCLASSP;FUCLASS;FUCLASSP\n"
+        "20;PERUNA KEITETTY;FOOD;BOIL;100;X;X;X;X\n"
+        "21;OLIIVIÖLJY;FOOD;IND;100;X;X;X;X\n"
+        "22;MUNAKOISO;FOOD;RAW;100;X;X;X;X\n"
+    )
+    files["foodname_EN.csv"] = (
+        "FOODID;FOODNAME;LANG\n"
+        "20;POTATO, BOILED;EN\n"
+        "21;OIL, OLIVE;EN\n"
+        "22;AUBERGINE;EN\n"
+    )
+    _write_fineli_files(tmp_path, files)
+    import_fineli(tmp_path, engine=main.engine)
+
+    oil_results = client.get("/api/ingredients/search", params={"q": "oil"}).json()
+    assert oil_results[0]["id"] == "21"
+
+    eggplant_results = client.get("/api/ingredients/search", params={"q": "eggplant"}).json()
+    assert [food["id"] for food in eggplant_results] == ["22"]
+
+
+def test_seed_mappings_data_integrity() -> None:
+    from app.integrations.fineli.matching import SEED_MAPPINGS
+
+    low_with_id = [
+        key
+        for key, entry in SEED_MAPPINGS.items()
+        if entry.get("confidence") == "low" and entry.get("fineli_id")
+    ]
+    assert low_with_id == []
+    assert SEED_MAPPINGS["beef stock"]["fineli_id"] == "29"
+    assert SEED_MAPPINGS["beef stock cube"]["fineli_id"] == "38"
+    assert SEED_MAPPINGS["seafood stock"]["fineli_id"] == "75"
+    assert SEED_MAPPINGS["frozen mixed berry"]["fineli_id"] == "454"
+    assert SEED_MAPPINGS["asparagus"]["fineli_id"] == "11689"
+    assert SEED_MAPPINGS["peach"]["fineli_id"] == "11051"
+
+
+def test_postgresql_fuzzy_fallback_uses_savepoint_not_session_rollback() -> None:
+    from unittest.mock import MagicMock
+    from sqlalchemy.exc import SQLAlchemyError
+    from app.integrations.fineli.local_client import LocalFineliClient
+
+    db = MagicMock()
+    db.scalars.side_effect = [MagicMock(all=MagicMock(return_value=[])), SQLAlchemyError("no pg_trgm")]
+    client = LocalFineliClient(db)
+
+    result = client._postgresql_candidates("oil", ["oil"])
+
+    assert result == []
+    db.begin_nested.assert_called_once()
+    db.rollback.assert_not_called()

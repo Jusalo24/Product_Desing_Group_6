@@ -121,7 +121,13 @@ def _response(
         else None
     )
     included = sum(result["status"] == "included" for result in ingredient_results)
+    negligible = sum(
+        result["status"] == "skipped" and result["reason"] == "negligible_measure"
+        for result in ingredient_results
+    )
     count = len(ingredient_results)
+    quantifiable = count - negligible
+    ratio = included / quantifiable if (included > 0 and quantifiable > 0) else 0
     return {
         "recipe_id": recipe.id,
         "values": fact.values,
@@ -133,7 +139,8 @@ def _response(
         "coverage": {
             "total_ingredients": count,
             "included_ingredients": included,
-            "ratio": included / count if count else 0,
+            "negligible_ingredients": negligible,
+            "ratio": ratio,
         },
         "ingredient_results": ingredient_results,
     }
@@ -296,9 +303,13 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
                 )
             )
         included = sum(result.status == "included" for result in ingredient_rows)
+        negligible = sum(
+            result.status == "skipped" and result.reason == "negligible_measure"
+            for result in ingredient_rows
+        )
         run.status = (
             "completed"
-            if included == len(ingredient_rows)
+            if included > 0 and included + negligible == len(ingredient_rows)
             else "partial"
             if included
             else "unavailable"

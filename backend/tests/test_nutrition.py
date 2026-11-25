@@ -117,6 +117,7 @@ def test_recalculate_returns_partial_detailed_totals_and_snapshots(client, monke
     assert result["coverage"] == {
         "total_ingredients": 2,
         "included_ingredients": 1,
+        "negligible_ingredients": 0,
         "ratio": 0.5,
     }
     assert [item["status"] for item in result["ingredient_results"]] == ["included", "skipped"]
@@ -140,6 +141,7 @@ def test_recalculate_with_zero_coverage_returns_unknown_totals(client) -> None:
     assert result["coverage"] == {
         "total_ingredients": 1,
         "included_ingredients": 0,
+        "negligible_ingredients": 0,
         "ratio": 0,
     }
     assert result["ingredient_results"][0]["reason"] == "unmatched"
@@ -284,7 +286,15 @@ def test_fineli_match_converts_volume_fallback_and_negligible_measure(client, mo
 
     calc = client.post(f"/api/recipes/{created['id']}/nutrition/recalculate")
     assert calc.status_code == 200
-    assert [item["reason"] for item in calc.json()["ingredient_results"]] == [
+    body = calc.json()
+    assert body["status"] == "completed"
+    assert body["coverage"] == {
+        "total_ingredients": 2,
+        "included_ingredients": 1,
+        "negligible_ingredients": 1,
+        "ratio": 1.0,
+    }
+    assert [item["reason"] for item in body["ingredient_results"]] == [
         None,
         "negligible_measure",
     ]

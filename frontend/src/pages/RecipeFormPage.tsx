@@ -11,6 +11,7 @@ import type { FineliFood } from "../types";
 import "../styles/RecipeFormPage.css";
 
 interface IngredientRow {
+  rowKey: number;
   name: string;
   amount: string;
   quantity: string;
@@ -26,13 +27,14 @@ function hasFineliId(
 
 export default function RecipeFormPage() {
   const navigate = useNavigate();
+  const nextRowKey = useRef(2);
   const [title, setTitle] = useState("New recipe");
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
   const [prepMinutes, setPrepMinutes] = useState("");
   const [servings, setServings] = useState("");
   const [ingredients, setIngredients] = useState<IngredientRow[]>([
-    { name: "", amount: "", quantity: "", unit: "g", fineliId: null },
+    { rowKey: 1, name: "", amount: "", quantity: "", unit: "g", fineliId: null },
   ]);
   const [suggestions, setSuggestions] = useState<Record<number, FineliFood[]>>({});
   const [activeSuggestion, setActiveSuggestion] = useState<Record<number, number>>({});
@@ -54,14 +56,27 @@ export default function RecipeFormPage() {
     return () => document.removeEventListener("mousedown", closeSuggestions);
   }, []);
 
-  function updateIngredient(index: number, patch: Partial<IngredientRow>) {
-    setIngredients((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  function updateIngredient(rowKey: number, patch: Partial<IngredientRow>) {
+    setIngredients((rows) =>
+      rows.map((r) => (r.rowKey === rowKey ? { ...r, ...patch } : r)),
+    );
   }
 
+  const searchSignature = ingredients
+    .filter((row) => row.name.trim() && !row.fineliId)
+    .map((row) => `${row.rowKey}:${row.name.trim()}`)
+    .join("|");
+
   useEffect(() => {
-    const queryRows = ingredients
-      .map((row, index) => ({ row, index }))
-      .filter(({ row }) => row.name.trim() && !row.fineliId);
+    const queryRows = searchSignature
+      ? searchSignature.split("|").map((entry) => {
+          const splitAt = entry.indexOf(":");
+          return {
+            rowKey: Number(entry.slice(0, splitAt)),
+            query: entry.slice(splitAt + 1),
+          };
+        })
+      : [];
 
     if (queryRows.length === 0) {
       setSuggestions({});
@@ -71,11 +86,14 @@ export default function RecipeFormPage() {
 
     const sequence = ++searchSequence.current;
     const timeout = window.setTimeout(async () => {
-      setSearching(Object.fromEntries(queryRows.map(({ index }) => [index, true])));
+      setSearching(Object.fromEntries(queryRows.map(({ rowKey }) => [rowKey, true])));
       setSearchError(null);
       try {
         const results = await Promise.all(
-          queryRows.map(async ({ row, index }) => [index, await api.searchIngredients(row.name)] as const),
+          queryRows.map(
+            async ({ rowKey, query }) =>
+              [rowKey, await api.searchIngredients(query)] as const,
+          ),
         );
         if (sequence === searchSequence.current) {
           setSuggestions(Object.fromEntries(results));
@@ -93,30 +111,30 @@ export default function RecipeFormPage() {
     }, 250);
 
     return () => window.clearTimeout(timeout);
-  }, [ingredients]);
+  }, [searchSignature]);
 
-  function selectIngredient(index: number, food: FineliFood) {
-    updateIngredient(index, { name: food.name, fineliId: food.id });
-    setSuggestions((current) => ({ ...current, [index]: [] }));
-    setActiveSuggestion((current) => ({ ...current, [index]: -1 }));
+  function selectIngredient(rowKey: number, food: FineliFood) {
+    updateIngredient(rowKey, { name: food.name, fineliId: food.id });
+    setSuggestions((current) => ({ ...current, [rowKey]: [] }));
+    setActiveSuggestion((current) => ({ ...current, [rowKey]: -1 }));
   }
 
-  function changeIngredientName(index: number, name: string) {
+  function changeIngredientName(rowKey: number, name: string) {
     searchSequence.current += 1;
-    updateIngredient(index, { name, fineliId: null });
-    setSuggestions((current) => ({ ...current, [index]: [] }));
-    setActiveSuggestion((current) => ({ ...current, [index]: -1 }));
+    updateIngredient(rowKey, { name, fineliId: null });
+    setSuggestions((current) => ({ ...current, [rowKey]: [] }));
+    setActiveSuggestion((current) => ({ ...current, [rowKey]: -1 }));
   }
 
   function handleIngredientKeyDown(
-    index: number,
+    rowKey: number,
     event: KeyboardEvent<HTMLInputElement>,
   ) {
-    const options = suggestions[index] ?? [];
+    const options = suggestions[rowKey] ?? [];
     if (event.key === "Escape") {
       event.preventDefault();
-      setSuggestions((current) => ({ ...current, [index]: [] }));
-      setActiveSuggestion((current) => ({ ...current, [index]: -1 }));
+      setSuggestions((current) => ({ ...current, [rowKey]: [] }));
+      setActiveSuggestion((current) => ({ ...current, [rowKey]: -1 }));
       return;
     }
 
@@ -125,30 +143,40 @@ export default function RecipeFormPage() {
         return;
       }
       event.preventDefault();
-      const currentIndex = activeSuggestion[index] ?? -1;
+      const currentIndex = activeSuggestion[rowKey] ?? -1;
       const nextIndex =
         event.key === "ArrowDown"
           ? (currentIndex + 1) % options.length
           : (currentIndex - 1 + options.length) % options.length;
-      setActiveSuggestion((current) => ({ ...current, [index]: nextIndex }));
+      setActiveSuggestion((current) => ({ ...current, [rowKey]: nextIndex }));
       return;
     }
 
     if (event.key === "Enter") {
       event.preventDefault();
-      const selectedIndex = activeSuggestion[index] ?? 0;
+      const selectedIndex = activeSuggestion[rowKey] ?? 0;
       const selectedSuggestion = options[selectedIndex] ?? options[0];
       if (selectedSuggestion) {
-        selectIngredient(index, selectedSuggestion);
+        selectIngredient(rowKey, selectedSuggestion);
       }
     }
   }
 
-  function removeIngredient(index: number) {
-    setIngredients((rows) => rows.filter((_, rowIndex) => rowIndex !== index));
+  function removeIngredient(rowKey: number) {
+    setIngredients((rows) => rows.filter((row) => row.rowKey !== rowKey));
     setSuggestions((current) => {
       const next = { ...current };
-      delete next[index];
+      delete next[rowKey];
+      return next;
+    });
+    setActiveSuggestion((current) => {
+      const next = { ...current };
+      delete next[rowKey];
+      return next;
+    });
+    setSearching((current) => {
+      const next = { ...current };
+      delete next[rowKey];
       return next;
     });
   }
@@ -259,7 +287,7 @@ export default function RecipeFormPage() {
 
         <div className="ingredient-list" ref={ingredientListRef}>
           {ingredients.map((row, i) => (
-            <div className="ingredient-row" key={i}>
+            <div className="ingredient-row" key={row.rowKey}>
               <label className="recipe-field amount-field">
                 <span className="sr-only">Amount for ingredient {i + 1}</span>
                 <input
@@ -269,7 +297,7 @@ export default function RecipeFormPage() {
                   placeholder="Amount"
                   value={row.quantity}
                   onChange={(e) =>
-                    updateIngredient(i, {
+                    updateIngredient(row.rowKey, {
                       quantity: e.target.value,
                       amount: e.target.value,
                     })
@@ -283,7 +311,7 @@ export default function RecipeFormPage() {
                   className="unit-select"
                   value={row.unit}
                   onChange={(e) =>
-                    updateIngredient(i, { unit: e.target.value as "g" | "kg" })
+                    updateIngredient(row.rowKey, { unit: e.target.value as "g" | "kg" })
                   }
                   aria-label={`Unit for ingredient ${i + 1}`}
                 >
@@ -296,39 +324,39 @@ export default function RecipeFormPage() {
                 <input
                   placeholder="Search Fineli ingredients"
                   value={row.name}
-                  onChange={(e) => changeIngredientName(i, e.target.value)}
-                  onKeyDown={(e) => handleIngredientKeyDown(i, e)}
+                  onChange={(e) => changeIngredientName(row.rowKey, e.target.value)}
+                  onKeyDown={(e) => handleIngredientKeyDown(row.rowKey, e)}
                   role="combobox"
                   aria-autocomplete="list"
-                  aria-controls={`ingredient-suggestions-${i}`}
-                  aria-expanded={(suggestions[i]?.length ?? 0) > 0}
+                  aria-controls={`ingredient-suggestions-${row.rowKey}`}
+                  aria-expanded={(suggestions[row.rowKey]?.length ?? 0) > 0}
                   aria-activedescendant={
-                    activeSuggestion[i] >= 0
-                      ? `ingredient-suggestion-${i}-${activeSuggestion[i]}`
+                    activeSuggestion[row.rowKey] >= 0
+                      ? `ingredient-suggestion-${row.rowKey}-${activeSuggestion[row.rowKey]}`
                       : undefined
                   }
                   aria-label={`Ingredient ${i + 1}`}
                 />
-                {searching[i] && <small className="field-hint">Searching Fineli…</small>}
-                {!!suggestions[i]?.length && (
+                {searching[row.rowKey] && <small className="field-hint">Searching Fineli…</small>}
+                {!!suggestions[row.rowKey]?.length && (
                   <ul
-                    id={`ingredient-suggestions-${i}`}
+                    id={`ingredient-suggestions-${row.rowKey}`}
                     className="ingredient-suggestions"
                     role="listbox"
                   >
-                    {suggestions[i].map((food, suggestionIndex) => (
+                    {suggestions[row.rowKey].map((food, suggestionIndex) => (
                       <li
                         key={food.id}
-                        id={`ingredient-suggestion-${i}-${suggestionIndex}`}
+                        id={`ingredient-suggestion-${row.rowKey}-${suggestionIndex}`}
                         role="option"
-                        aria-selected={activeSuggestion[i] === suggestionIndex}
+                        aria-selected={activeSuggestion[row.rowKey] === suggestionIndex}
                         className={
-                          activeSuggestion[i] === suggestionIndex
+                          activeSuggestion[row.rowKey] === suggestionIndex
                             ? "suggestion-active"
                             : undefined
                         }
                       >
-                        <button type="button" onClick={() => selectIngredient(i, food)}>
+                        <button type="button" onClick={() => selectIngredient(row.rowKey, food)}>
                           {food.name}
                         </button>
                       </li>
@@ -339,7 +367,7 @@ export default function RecipeFormPage() {
               <button
                 type="button"
                 className="remove-ingredient"
-                onClick={() => removeIngredient(i)}
+                onClick={() => removeIngredient(row.rowKey)}
                 aria-label={`Remove ingredient ${i + 1}`}
                 disabled={ingredients.length === 1}
               >
@@ -355,7 +383,14 @@ export default function RecipeFormPage() {
           onClick={() =>
             setIngredients((rows) => [
               ...rows,
-              { name: "", amount: "", quantity: "", unit: "g", fineliId: null },
+              {
+                rowKey: nextRowKey.current++,
+                name: "",
+                amount: "",
+                quantity: "",
+                unit: "g",
+                fineliId: null,
+              },
             ])
           }
         >

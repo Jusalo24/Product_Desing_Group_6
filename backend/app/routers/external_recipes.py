@@ -14,7 +14,7 @@ from app.database import SessionLocal, get_db
 from app.integrations.fineli.client import ExternalProviderError
 from app.integrations.fineli.factory import get_fineli_client
 from app.integrations.fineli.local_client import FineliFoodNotFound
-from app.integrations.fineli.matching import lookup_mapping
+from app.integrations.fineli.matching import AUTO_MATCH_CONFIDENCES, lookup_mapping
 from app.integrations.themealdb.client import TheMealDbClient
 from app.routers.recipes import apply_fineli_match_to_ingredient
 
@@ -232,7 +232,7 @@ def import_external_recipe(
             if (
                 mapping
                 and mapping.get("fineli_id")
-                and mapping.get("confidence") in {"high", "manual"}
+                and mapping.get("confidence") in AUTO_MATCH_CONFIDENCES
             ):
                 try:
                     food = fineli_client.get_food(str(mapping["fineli_id"]))

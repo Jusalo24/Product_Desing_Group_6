@@ -93,6 +93,7 @@ export interface NutritionIngredientResult {
 export interface NutritionCoverage {
   total_ingredients: number;
   included_ingredients: number;
+  negligible_ingredients?: number;
   ratio: number;
 }
 

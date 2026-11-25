@@ -16,6 +16,8 @@ type EditableIngredient = {
   quantity: string;
   unit: "g" | "kg";
   fineli_id: string | null;
+  conversion_status?: string;
+  dirty: boolean;
 };
 
 export default function RecipeDetailPage() {
@@ -32,7 +34,9 @@ export default function RecipeDetailPage() {
   const [savingIngredients, setSavingIngredients] = useState(false);
   const [ingredientError, setIngredientError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Record<number, FineliFood[]>>({});
-  const [matchingIngredientId, setMatchingIngredientId] = useState<number | null>(null);
+  const [openMatchPanels, setOpenMatchPanels] = useState<Record<number, boolean>>({});
+  const [matchQueries, setMatchQueries] = useState<Record<number, string>>({});
+  const [busyIngredientIds, setBusyIngredientIds] = useState<Record<number, boolean>>({});
   const [autoMatching, setAutoMatching] = useState(false);
   const [matchErrors, setMatchErrors] = useState<Record<number, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
@@ -99,11 +103,21 @@ export default function RecipeDetailPage() {
     await refreshNutrition(recipe.id);
   }
 
-  async function findFineliMatches(ingredientId: number, name: string) {
-    setMatchingIngredientId(ingredientId);
+  async function findFineliMatches(ingredientId: number, query: string) {
+    const trimmed = query.trim();
+    setOpenMatchPanels((current) => ({ ...current, [ingredientId]: true }));
+    setMatchQueries((current) => ({ ...current, [ingredientId]: query }));
+    if (!trimmed) {
+      setMatchErrors((errors) => ({
+        ...errors,
+        [ingredientId]: "Enter a search term for Fineli.",
+      }));
+      return;
+    }
+    setBusyIngredientIds((current) => ({ ...current, [ingredientId]: true }));
     setMatchErrors((errors) => ({ ...errors, [ingredientId]: "" }));
     try {
-      const candidates = await api.suggestIngredients(name);
+      const candidates = await api.suggestIngredients(trimmed);
       setSuggestions((current) => ({ ...current, [ingredientId]: candidates }));
     } catch (err) {
       setMatchErrors((errors) => ({
@@ -111,13 +125,18 @@ export default function RecipeDetailPage() {
         [ingredientId]: err instanceof Error ? err.message : "Could not search Fineli foods.",
       }));
     } finally {
-      setMatchingIngredientId(null);
+      setBusyIngredientIds((current) => ({ ...current, [ingredientId]: false }));
     }
+  }
+
+  function closeMatchPanel(ingredientId: number) {
+    setOpenMatchPanels((current) => ({ ...current, [ingredientId]: false }));
+    setMatchErrors((errors) => ({ ...errors, [ingredientId]: "" }));
   }
 
   async function confirmFineliMatch(ingredientId: number, food: FineliFood) {
     if (!recipe) return;
-    setMatchingIngredientId(ingredientId);
+    setBusyIngredientIds((current) => ({ ...current, [ingredientId]: true }));
     setMatchErrors((errors) => ({ ...errors, [ingredientId]: "" }));
     try {
       const matched = await api.matchIngredient(recipe.id, ingredientId, food.id);
@@ -137,7 +156,8 @@ export default function RecipeDetailPage() {
         delete next[ingredientId];
         return next;
       });
-      setMatchingIngredientId(null);
+      setOpenMatchPanels((current) => ({ ...current, [ingredientId]: false }));
+      setBusyIngredientIds((current) => ({ ...current, [ingredientId]: false }));
       await refreshNutrition(recipe.id);
     } catch (err) {
       setMatchErrors((errors) => ({
@@ -145,7 +165,7 @@ export default function RecipeDetailPage() {
         [ingredientId]: err instanceof Error ? err.message : "Could not save Fineli match.",
       }));
     } finally {
-      setMatchingIngredientId(null);
+      setBusyIngredientIds((current) => ({ ...current, [ingredientId]: false }));
     }
   }
 
@@ -183,6 +203,8 @@ export default function RecipeDetailPage() {
         quantity: ingredient.quantity?.toString() ?? "",
         unit: ingredient.unit === "kg" ? "kg" : "g",
         fineli_id: ingredient.fineli_id ?? null,
+        conversion_status: ingredient.conversion_status,
+        dirty: false,
       })) ?? [],
     );
     setEditingIngredients(true);
@@ -195,8 +217,16 @@ export default function RecipeDetailPage() {
 
   async function saveIngredients() {
     if (!recipe) return;
-    if (draftIngredients.some((ingredient) => !ingredient.quantity || Number(ingredient.quantity) <= 0)) {
-      setIngredientError("Add a valid amount for every ingredient.");
+    const hasInvalidQuantity = draftIngredients.some((ingredient) => {
+      const trimmed = ingredient.quantity.trim();
+      if (!trimmed) {
+        return false;
+      }
+      const parsed = Number(trimmed);
+      return !Number.isFinite(parsed) || parsed <= 0;
+    });
+    if (hasInvalidQuantity) {
+      setIngredientError("Amounts must be positive numbers.");
       return;
     }
 
@@ -204,17 +234,26 @@ export default function RecipeDetailPage() {
     setIngredientError(null);
     try {
       const updated = await api.updateIngredients(recipe.id, {
-        ingredients: draftIngredients.map((ingredient) => ({
-          name: ingredient.name,
-          amount: `${ingredient.quantity} ${ingredient.unit}`,
-          quantity: Number(ingredient.quantity),
-          unit: ingredient.unit,
-          fineli_id: ingredient.fineli_id,
-        })),
+        ingredients: draftIngredients.map((ingredient) => {
+          const trimmed = ingredient.quantity.trim();
+          const hasQty = trimmed !== "";
+          const qtyValue = hasQty ? Number(trimmed) : null;
+          return {
+            name: ingredient.name,
+            amount:
+              ingredient.dirty && hasQty
+                ? `${trimmed} ${ingredient.unit}`
+                : ingredient.amount,
+            quantity: qtyValue,
+            unit: hasQty ? ingredient.unit : null,
+            fineli_id: ingredient.fineli_id,
+          };
+        }),
       });
       setRecipe(updated);
       setNutrition(null);
       setEditingIngredients(false);
+      await refreshNutrition(updated.id);
     } catch (e) {
       setIngredientError((e as Error).message);
     } finally {
@@ -282,18 +321,23 @@ export default function RecipeDetailPage() {
             </div>
             <span className="section-count">{recipe.ingredients.length}</span>
           </div>
-          {!editingIngredients && recipe.ingredients.some((item) => !item.fineli_id) && (
-            <div className="ingredient-edit-actions">
-              <button
-                type="button"
-                className="button secondary"
-                onClick={autoMatchAll}
-                disabled={autoMatching}
-              >
-                {autoMatching ? "Auto-matching…" : "Auto-match ingredients"}
-              </button>
-            </div>
-          )}
+          {!editingIngredients &&
+            recipe.ingredients.some(
+              (item) =>
+                !item.fineli_id ||
+                (item.quantity == null && item.conversion_status !== "negligible"),
+            ) && (
+              <div className="ingredient-edit-actions">
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={autoMatchAll}
+                  disabled={autoMatching}
+                >
+                  {autoMatching ? "Auto-matching…" : "Auto-match ingredients"}
+                </button>
+              </div>
+            )}
           {editingIngredients ? (
             <div className="ingredient-edit-list">
               {draftIngredients.map((ingredient, index) => (
@@ -304,12 +348,13 @@ export default function RecipeDetailPage() {
                     min="0.001"
                     step="any"
                     value={ingredient.quantity}
+                    placeholder={ingredient.amount || "g"}
                     aria-label={`Amount for ${ingredient.name}`}
                     onChange={(event) =>
                       setDraftIngredients((current) =>
                         current.map((item, itemIndex) =>
                           itemIndex === index
-                            ? { ...item, quantity: event.target.value, amount: event.target.value }
+                            ? { ...item, quantity: event.target.value, dirty: true }
                             : item,
                         ),
                       )
@@ -323,7 +368,7 @@ export default function RecipeDetailPage() {
                       setDraftIngredients((current) =>
                         current.map((item, itemIndex) =>
                           itemIndex === index
-                            ? { ...item, unit: event.target.value as "g" | "kg" }
+                            ? { ...item, unit: event.target.value as "g" | "kg", dirty: true }
                             : item,
                         ),
                       )
@@ -368,50 +413,88 @@ export default function RecipeDetailPage() {
                     type="button"
                     className="button secondary"
                     onClick={() => findFineliMatches(i.id, i.name)}
-                    disabled={matchingIngredientId === i.id}
+                    disabled={!!busyIngredientIds[i.id]}
                   >
-                    {matchingIngredientId === i.id
+                    {busyIngredientIds[i.id]
                       ? "Searching Fineli…"
                       : i.fineli_id
                         ? "Change Fineli match"
                         : "Find Fineli match"}
                   </button>
-                  {matchErrors[i.id] && <p className="error">{matchErrors[i.id]}</p>}
-                  {suggestions[i.id]?.length ? (
-                    <ul aria-label={`Fineli suggestions for ${i.name}`}>
-                      {suggestions[i.id].map((food) => (
-                        <li key={food.id}>
-                          <strong>{food.name}</strong>
-                          {(food.food_type || food.process) && (
-                            <p className="muted-copy">
-                              {[food.food_type, food.process].filter(Boolean).join(" · ")}
-                            </p>
-                          )}
-                          {food.detailed_nutrients.slice(0, 3).length > 0 && (
-                            <p>
-                              {food.detailed_nutrients
-                                .slice(0, 3)
-                                .map(
-                                  (nutrient) =>
-                                    `${nutrient.name}: ${nutrient.value_per_100g} ${nutrient.unit}/100 g`,
-                                )
-                                .join(" · ")}
-                            </p>
-                          )}
-                          <button
-                            type="button"
-                            className="button secondary"
-                            onClick={() => confirmFineliMatch(i.id, food)}
-                            disabled={matchingIngredientId === i.id}
-                          >
-                            Use {food.name}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : suggestions[i.id] ? (
-                    <p className="muted-copy">No matching Fineli foods found.</p>
-                  ) : null}
+                  {openMatchPanels[i.id] && (
+                    <div>
+                      <form
+                        className="ingredient-edit-actions"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void findFineliMatches(i.id, matchQueries[i.id] ?? i.name);
+                        }}
+                      >
+                        <input
+                          type="search"
+                          value={matchQueries[i.id] ?? i.name}
+                          onChange={(event) =>
+                            setMatchQueries((current) => ({
+                              ...current,
+                              [i.id]: event.target.value,
+                            }))
+                          }
+                          aria-label={`Search Fineli for ${i.name}`}
+                          placeholder="Search Fineli foods"
+                        />
+                        <button
+                          type="submit"
+                          className="button secondary"
+                          disabled={!!busyIngredientIds[i.id]}
+                        >
+                          Search
+                        </button>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => closeMatchPanel(i.id)}
+                        >
+                          Close
+                        </button>
+                      </form>
+                      {matchErrors[i.id] && <p className="error">{matchErrors[i.id]}</p>}
+                      {suggestions[i.id]?.length ? (
+                        <ul aria-label={`Fineli suggestions for ${i.name}`}>
+                          {suggestions[i.id].map((food) => (
+                            <li key={food.id}>
+                              <strong>{food.name}</strong>
+                              {(food.food_type || food.process) && (
+                                <p className="muted-copy">
+                                  {[food.food_type, food.process].filter(Boolean).join(" · ")}
+                                </p>
+                              )}
+                              {food.detailed_nutrients.slice(0, 3).length > 0 && (
+                                <p>
+                                  {food.detailed_nutrients
+                                    .slice(0, 3)
+                                    .map(
+                                      (nutrient) =>
+                                        `${nutrient.name}: ${nutrient.value_per_100g} ${nutrient.unit}/100 g`,
+                                    )
+                                    .join(" · ")}
+                                </p>
+                              )}
+                              <button
+                                type="button"
+                                className="button secondary"
+                                onClick={() => confirmFineliMatch(i.id, food)}
+                                disabled={!!busyIngredientIds[i.id]}
+                              >
+                                Use {food.name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : suggestions[i.id] && !busyIngredientIds[i.id] ? (
+                        <p className="muted-copy">No matching Fineli foods found.</p>
+                      ) : null}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -436,6 +519,8 @@ export default function RecipeDetailPage() {
                 Coverage: {nutrition.coverage.included_ingredients} of{" "}
                 {nutrition.coverage.total_ingredients} ingredients (
                 {Math.round(nutrition.coverage.ratio * 100)}%)
+                {(nutrition.coverage.negligible_ingredients ?? 0) > 0 &&
+                  ` · ${nutrition.coverage.negligible_ingredients} negligible`}
               </p>
               {nutrition.coverage.included_ingredients === 0 ? (
                 <p className="muted-copy">

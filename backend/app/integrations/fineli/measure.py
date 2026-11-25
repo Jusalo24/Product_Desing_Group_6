@@ -52,12 +52,86 @@ _NEGLIGIBLE_PHRASES = {
     "some",
     "little",
     "a little",
+    "little bit",
+    "a little bit",
+    "few",
+    "a few",
     "splash",
     "a splash",
     "drizzle",
     "a drizzle",
     "handful",
     "a handful",
+    "handful of",
+    "small handful",
+    "large handful",
+    "sprinkling",
+    "a sprinkling",
+    "dusting",
+    "a dusting",
+    "salt and pepper",
+}
+
+_NEGLIGIBLE_PREFIXES = (
+    "pinch of ",
+    "a pinch of ",
+    "dash of ",
+    "a dash of ",
+    "splash of ",
+    "a splash of ",
+    "drizzle of ",
+    "a drizzle of ",
+    "handful of ",
+    "a handful of ",
+    "sprinkling of ",
+    "a sprinkling of ",
+    "to taste",
+    "for garnish",
+    "to garnish",
+    "to serve",
+    "for serving",
+)
+
+_LEADING_MODIFIERS = {
+    "heaped",
+    "heaping",
+    "level",
+    "generous",
+    "scant",
+    "rounded",
+    "packed",
+    "firmly",
+    "loosely",
+    "good",
+    "about",
+    "approx",
+    "approximately",
+    "roughly",
+    "finely",
+    "coarsely",
+    "thinly",
+    "thickly",
+    "fresh",
+    "freshly",
+    "dried",
+    "ground",
+    "chopped",
+    "grated",
+    "crushed",
+    "sliced",
+    "diced",
+    "minced",
+    "beaten",
+    "whisked",
+    "melted",
+    "softened",
+    "warm",
+    "cold",
+    "hot",
+    "boiling",
+    "raw",
+    "cooked",
+    "extra",
 }
 
 _TRAILING_MODIFIERS = {
@@ -190,6 +264,8 @@ _VOLUME_ML: dict[str, float] = {
     "tbsp": 15.0,
     "tbs": 15.0,
     "tbl": 15.0,
+    "tbls": 15.0,
+    "tblsp": 15.0,
     "tb": 15.0,
     "tablespoon": 15.0,
     "tablespoons": 15.0,
@@ -214,6 +290,8 @@ _FINELI_UNIT_CODES: dict[str, tuple[str, ...]] = {
     "tbsp": ("RKL", "TBSP"),
     "tbs": ("RKL", "TBSP"),
     "tbl": ("RKL", "TBSP"),
+    "tbls": ("RKL", "TBSP"),
+    "tblsp": ("RKL", "TBSP"),
     "tb": ("RKL", "TBSP"),
     "tablespoon": ("RKL", "TBSP"),
     "tablespoons": ("RKL", "TBSP"),
@@ -254,8 +332,12 @@ _FINELI_UNIT_CODES: dict[str, tuple[str, ...]] = {
     "big pieces": ("KPL_L",),
     "slice": ("VIIL", "SLICE", "KPL_VALM", "KPL_M"),
     "slices": ("VIIL", "SLICE", "KPL_VALM", "KPL_M"),
-    "portion": ("PORTM", "PORTL"),
-    "portions": ("PORTM", "PORTL"),
+    "small portion": ("PORTS", "PORTM"),
+    "small portions": ("PORTS", "PORTM"),
+    "large portion": ("PORTL", "PORTM"),
+    "large portions": ("PORTL", "PORTM"),
+    "portion": ("PORTM", "PORTL", "PORTS"),
+    "portions": ("PORTM", "PORTL", "PORTS"),
 }
 
 _COUNT_UNITS = {
@@ -278,6 +360,40 @@ _COUNT_UNITS = {
     "large pieces",
     "big piece",
     "big pieces",
+    "fillet",
+    "fillets",
+    "breast",
+    "breasts",
+    "thigh",
+    "thighs",
+    "stalk",
+    "stalks",
+    "rib",
+    "ribs",
+    "sprig",
+    "sprigs",
+    "leaf",
+    "leaves",
+    "cube",
+    "cubes",
+    "head",
+    "heads",
+    "bulb",
+    "bulbs",
+    "stick",
+    "sticks",
+    "rasher",
+    "rashers",
+    "strip",
+    "strips",
+    "sheet",
+    "sheets",
+    "pod",
+    "pods",
+    "ear",
+    "ears",
+    "slice",
+    "slices",
 }
 
 _SIZE_SCALE = {
@@ -291,10 +407,21 @@ _SIZE_SCALE = {
     "big piece": 1.35,
     "big pieces": 1.35,
 }
+_CODE_BASE_SIZE = {
+    "KPL_S": 0.75,
+    "KPL_M": 1.0,
+    "KPL_L": 1.35,
+    "KPL_VALM": 1.0,
+}
 
 _CONTAINER_UNITS = {"can", "cans", "tin", "tins", "jar", "jars", "pack", "packs", "packet", "packets", "bag", "bags", "box", "boxes", "bottle", "bottles", "carton", "cartons"}
 
 _QTY_TOKEN = r"(?:\d+\s+\d+/\d+|\d+/\d+|\d+(?:[.,]\d+)?)"
+_MULTIPLIED_CONTAINER = re.compile(
+    rf"^(?P<count>{_QTY_TOKEN})(?:\s*(?P<mult>x|×)\s*|\s+)(?P<inner>\d+(?:[.,]\d+)?\s*[a-zA-Z]+\.?)\s*(?P<container>[a-zA-Z]+)?\s*$",
+    re.IGNORECASE,
+)
+_DUAL_MEASURE_SPLIT = re.compile(r"(?<=[a-zA-Z.])\s*/\s*(?=\d)")
 _MEASURE_RANGE = re.compile(
     rf"^(?P<low>{_QTY_TOKEN})\s*(?:-|to)\s*(?P<high>{_QTY_TOKEN})\s*(?P<unit>.*)$",
     re.IGNORECASE,
@@ -349,19 +476,23 @@ def _clean_unit(raw_unit: str) -> str:
     base = _POUNDED_THICKNESS_NOTE.sub("", base)
     # Remove remaining parenthetical remarks
     base = re.sub(r"\([^)]*\)", " ", base)
-    normalized = _normalized_text(base).strip(".")
+    normalized = _normalized_text(base)
     if not normalized:
         return ""
-    tokens = normalized.split()
+    tokens = [token.strip(".") for token in normalized.split() if token.strip(".")]
+    if not tokens:
+        return ""
+    while len(tokens) > 1 and tokens[0] in _LEADING_MODIFIERS:
+        tokens.pop(0)
     if (
-        len(tokens) == 2
+        len(tokens) >= 2
         and tokens[0] in _DIRECT_MASS_FACTORS
-        and tokens[1] in {"piece", "pieces"}
+        and tokens[1] in ({"piece", "pieces"} | _CONTAINER_UNITS)
     ):
-        tokens.pop()
+        tokens = [tokens[0]]
     while len(tokens) > 1 and tokens[-1] in _TRAILING_MODIFIERS:
         tokens.pop()
-    if len(tokens) == 1 and tokens[0] in _TRAILING_MODIFIERS:
+    if len(tokens) == 1 and tokens[0] in (_TRAILING_MODIFIERS | _LEADING_MODIFIERS):
         return ""
     return " ".join(tokens)
 
@@ -423,19 +554,42 @@ def _guess_density_g_per_ml(ingredient_name: str | None) -> float:
     if not ingredient_name:
         return 1.0
     name = _normalized_text(ingredient_name)
-    if any(word in name for word in ("oil", "butter", "ghee", "lard")):
+    words = set(re.sub(r"[^a-z0-9]+", " ", name).split())
+    if "buttermilk" in words:
+        return 1.03
+    if "peanut butter" in name or "almond butter" in name or "tahini" in words:
+        return 1.08
+    if words & {"oil", "butter", "ghee", "lard"}:
         return 0.91
-    if any(word in name for word in ("flour", "cocoa", "starch", "cornflour", "icing sugar", "powdered sugar")):
+    if (
+        "icing sugar" in name
+        or "powdered sugar" in name
+        or "confectioners sugar" in name
+        or bool(words & {"flour", "cocoa", "starch", "cornflour", "cornstarch"})
+    ):
         return 0.55
-    if any(word in name for word in ("oats", "oatmeal", "breadcrumb", "panko")):
+    if words & {"oats", "oat", "oatmeal", "breadcrumb", "breadcrumbs", "panko"}:
         return 0.45
-    if any(word in name for word in ("honey", "syrup", "treacle", "molasses")):
+    if words & {"honey", "syrup", "treacle", "molasses"}:
         return 1.4
-    if any(word in name for word in ("sugar", "salt")):
+    if "sugar snap" not in name and (words & {"sugar", "salt"}):
         return 0.85
-    if any(word in name for word in ("rice", "lentil", "couscous", "quinoa")):
+    if words & {"rice", "lentil", "lentils", "couscous", "quinoa"}:
         return 0.85
     return 1.0
+
+
+def _is_negligible_phrase(normalized_full: str) -> bool:
+    if normalized_full in _NEGLIGIBLE_PHRASES:
+        return True
+    return any(normalized_full.startswith(prefix) for prefix in _NEGLIGIBLE_PREFIXES)
+
+
+def _is_spice_clove(ingredient_name: str | None) -> bool:
+    if not ingredient_name:
+        return False
+    words = set(re.sub(r"[^a-z0-9]+", " ", _normalized_text(ingredient_name)).split())
+    return bool(words & {"clove", "cloves"}) and "garlic" not in words
 
 
 def convert_measure_to_grams(
@@ -449,18 +603,57 @@ def convert_measure_to_grams(
 
     Resolution order:
     1. Non-quantitative / negligible expressions ("to taste", "pinch", "garnish").
-    2. Parenthetical explicit measure on container amounts (e.g. "1 can (400g)").
-    3. Direct mass units (g, kg, mg, oz, lb).
-    4. Fineli food-specific household units (RKL/TBSP, TL/TSP, DL, L, KPL_*, VIIL, PORTM).
-    5. Volume units bridged through Fineli's DL/L density or a general density estimate.
-    6. Count / piece fallback via Fineli KPL_* or mapping default_weight_g.
+    2. Dual metric/imperial expressions (e.g. "100g/3½oz", "200ml/7fl oz").
+    3. Multiplied container amounts (e.g. "2 x 400g tins", "1 400g tin") and parenthetical weights.
+    4. Direct mass units (g, kg, mg, oz, lb).
+    5. Fineli food-specific household units (RKL/TBSP, TL/TSP, DL, L, KPL_*, VIIL, PORTM).
+    6. Volume units bridged through Fineli's DL/L density or a general density estimate.
+    7. Count / piece fallback via Fineli KPL_* or mapping default_weight_g.
     """
     if not measure or not measure.strip():
         return None
 
     normalized_full = _normalized_text(measure)
-    if normalized_full in _NEGLIGIBLE_PHRASES:
+    if _is_negligible_phrase(normalized_full):
         return MeasureConversion(grams=None, status="negligible", note="non_quantitative")
+
+    cleaned_raw = _replace_unicode_fractions(measure.strip())
+
+    # Handle dual metric/imperial measures like "100g/3½oz" or "200ml/7fl oz"
+    if _DUAL_MEASURE_SPLIT.search(cleaned_raw):
+        parts = [part.strip() for part in _DUAL_MEASURE_SPLIT.split(cleaned_raw) if part.strip()]
+        if len(parts) >= 2:
+            for part in parts:
+                converted = convert_measure_to_grams(
+                    part,
+                    food_units,
+                    default_weight_g=default_weight_g,
+                    ingredient_name=ingredient_name,
+                )
+                if converted is not None:
+                    return converted
+
+    # Handle multiplied container expressions like "2 x 400g tins" or "1 400g can"
+    mult_match = _MULTIPLIED_CONTAINER.fullmatch(cleaned_raw)
+    if mult_match:
+        container_word = _normalized_text(mult_match.group("container") or "")
+        has_multiplier = bool(mult_match.group("mult"))
+        if (has_multiplier or container_word in _CONTAINER_UNITS) and (
+            not container_word or container_word in _CONTAINER_UNITS
+        ):
+            count = _number(mult_match.group("count"))
+            inner = convert_measure_to_grams(
+                mult_match.group("inner"),
+                food_units,
+                default_weight_g=default_weight_g,
+                ingredient_name=ingredient_name,
+            )
+            if count is not None and inner is not None and inner.grams is not None:
+                return MeasureConversion(
+                    grams=count * inner.grams,
+                    status="exact" if count == 1 and inner.status == "exact" else "estimated",
+                    note="multiplied_container",
+                )
 
     parsed = _extract_quantity_and_unit(measure)
     if parsed is None:
@@ -469,10 +662,10 @@ def convert_measure_to_grams(
     quantity, raw_unit, is_range = parsed
     by_code, by_name = _unit_grams_map(food_units)
 
-    # Check parenthetical explicit weights like "1 can (400g)" or "2 tins (400g)"
+    # Check parenthetical explicit weights like "1 can (400g)", "2 tins (400g)", or "1 bunch (50g)"
     paren_match = _PAREN_MEASURE.search(raw_unit)
     unit_before_paren = _clean_unit(re.sub(r"\([^)]*\)", "", raw_unit))
-    if paren_match and unit_before_paren in _CONTAINER_UNITS:
+    if paren_match and (unit_before_paren in _CONTAINER_UNITS or quantity == 1):
         inner = convert_measure_to_grams(
             paren_match.group(1),
             food_units,
@@ -526,18 +719,26 @@ def convert_measure_to_grams(
 
     # 4. Countable pieces / bare numbers ("2", "2 whole", "3 cloves", "2 large")
     if unit in {"clove", "cloves"}:
-        per_clove = default_weight_g if default_weight_g and default_weight_g > 0 else 5.0
+        if _is_spice_clove(ingredient_name):
+            per_clove = default_weight_g if default_weight_g and default_weight_g > 0 else 0.1
+            note = "spice_clove_estimate"
+        else:
+            per_clove = default_weight_g if default_weight_g and default_weight_g > 0 else 5.0
+            note = "garlic_clove_estimate"
         return MeasureConversion(
             grams=quantity * per_clove,
             status="estimated",
-            note="garlic_clove_estimate",
+            note=note,
         )
 
     if unit in _COUNT_UNITS:
         scale = _SIZE_SCALE.get(unit, 1.0)
         for fallback_code in ("KPL_M", "KPL_S", "KPL_L", "KPL_VALM"):
             if fallback_code in by_code:
-                applied_scale = scale if fallback_code == "KPL_M" else 1.0
+                if unit in _SIZE_SCALE:
+                    applied_scale = scale / _CODE_BASE_SIZE[fallback_code]
+                else:
+                    applied_scale = 1.0
                 return MeasureConversion(
                     grams=quantity * by_code[fallback_code] * applied_scale,
                     status="estimated",
