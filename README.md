@@ -1,6 +1,6 @@
 # Recipe App
 
-School project starter: a recipe / food web page.
+School project: a recipe search, management, and nutrition estimation web application powered by TheMealDB and Fineli.
 
 | Layer    | Tech                                  |
 | -------- | ------------------------------------- |
@@ -8,31 +8,69 @@ School project starter: a recipe / food web page.
 | Backend  | Python, FastAPI, SQLAlchemy           |
 | Database | PostgreSQL (via Docker for local dev) |
 
+## Features
+
+- **External recipe search & import (TheMealDB)**: Search meals on the homepage (`/`, `/meals/search`), view recipe details with images and source attribution, and import them into your local recipe library (`POST /api/external-recipes/id/{external_id}/import`, deduplicated by provider ID). Additional browse/filter/lookup routes live under `/api/external-recipes/...`.
+- **Custom recipes & ingredient editing**: Create your own recipes (`/new`) with optional Fineli food matching, browse saved recipes (`/my-recipes`), edit saved ingredient quantities and units (`PUT /api/recipes/{id}/ingredients` via **Edit ingredients**), and delete recipes.
+- **Fineli ingredient matching (auto & manual)**: Automatically match imported or unmapped ingredients (`POST /api/recipes/{id}/ingredients/auto-match`) using curated TheMealDB-to-Fineli mappings (`ingredient_mappings`) and exact basic-food lookups, or manually search and confirm candidates per ingredient (`/api/ingredients/suggestions`, `/api/ingredients/search`, `PUT /api/recipes/{id}/ingredients/{ingredient_id}/nutrition-source`).
+- **Unit & measure conversions**: Parse recipe amounts (metric `g`/`kg`/`ml`/`l`, fractions, negligible phrases like `"to taste"`, and Fineli household units from `fineli_food_units`) into grams with explicit `conversion_status` tracking (`exact`, `estimated`, `negligible`, `unknown`, `unmatched`).
+- **Nutrition calculation**: Calculate and store recipe nutrition snapshots (`POST /api/recipes/{id}/nutrition/recalculate`, `GET /api/recipes/{id}/nutrition`), including normalized core macros, per-serving values, detailed Fineli micronutrients, ingredient coverage, and per-ingredient inclusion/skip reasons.
+
 ## Project structure
 
 ```
 recipe-app/
-├── docker-compose.yml        # PostgreSQL for local development
+├── docker-compose.yml               # PostgreSQL for local development
+├── README.md
+├── API_USAGE.md                     # TheMealDB & Fineli integration guidelines
+├── FINELI_DATA_GUIDE.md             # Fineli Rel20 dataset, importer & nutrition notes
+├── TESTING.md                       # Automated test coverage & validation guide
 ├── backend/
 │   ├── requirements.txt
-│   ├── .env.example          # copy to .env
+│   ├── requirements-dev.txt         # pytest and test dependencies
+│   ├── .env.example                 # copy to .env
+│   ├── data/
+│   │   └── fineli/                  # gitignored Fineli CSVs staged by download_fineli
+│   ├── tests/                       # pytest suite (isolated in-memory SQLite)
 │   └── app/
-│       ├── main.py           # FastAPI app, CORS, router registration
-│       ├── config.py         # settings from environment / .env
-│       ├── database.py       # engine, session, get_db dependency
-│       ├── models.py         # SQLAlchemy tables (Recipe, Ingredient)
-│       ├── schemas.py        # Pydantic request/response models
-│       └── routers/
-│           └── recipes.py    # /api/recipes endpoints
+│       ├── main.py                  # FastAPI app, CORS, router registration, startup checks
+│       ├── config.py                # settings from environment / .env
+│       ├── database.py              # engine, session, get_db, additive schema/index helpers
+│       ├── models.py                # SQLAlchemy tables (Recipe, Ingredient, RecipeSource,
+│       │                            #   IngredientMapping, ExternalCacheEntry, Nutrition*, Fineli*)
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── data/                    # curated Fineli aliases & TheMealDB-to-Fineli mappings
+│       ├── integrations/
+│       │   ├── fineli/              # Fineli local/HTTP clients, factory, matching, measure conversion
+│       │   └── themealdb/           # TheMealDB API client
+│       ├── routers/
+│       │   ├── recipes.py           # /api/recipes CRUD, ingredient editing & matching
+│       │   ├── external_recipes.py  # /api/external-recipes browse, lookup & import
+│       │   ├── meals.py             # /api/meals/search endpoint
+│       │   ├── ingredients.py       # /api/ingredients Fineli search & suggestions
+│       │   └── nutrition.py         # /api/recipes/{id}/nutrition calculation & retrieval
+│       └── scripts/
+│           ├── download_fineli.py   # stages Fineli CSVs from the Rel20 ZIP
+│           ├── import_fineli.py     # imports Fineli foods, components, nutrients & units
+│           ├── import_mappings.py   # imports curated TheMealDB-to-Fineli mappings
+│           ├── generate_ingredient_mappings.py
+│           ├── migrate_db.py        # standalone additive schema migration script
+│           └── progress.py
 └── frontend/
     ├── package.json
-    ├── vite.config.ts        # dev proxy: /api -> localhost:8000
+    ├── vite.config.ts               # dev proxy: /api -> localhost:8000
     └── src/
         ├── main.tsx
-        ├── App.tsx           # header + routes
-        ├── api.ts            # all backend calls live here
-        ├── types.ts          # TS types mirroring backend schemas
-        └── pages/            # meal search, list, detail, create form
+        ├── App.tsx                  # header + routes
+        ├── api.ts                   # all backend calls live here
+        ├── types.ts                 # TS types mirroring backend schemas
+        ├── index.css
+        ├── vite-env.d.ts
+        ├── components/              # HeaderSearch, Logo
+        ├── pages/                   # MealSearchPage, RecipeListPage, RecipeDetailPage,
+        │                            #   RecipeFormPage (+ page tests)
+        ├── styles/                  # RecipeDetailPage.css, RecipeFormPage.css
+        └── test/                    # Vitest setup
 ```
 
 ## Requirements
@@ -95,7 +133,15 @@ python -m uvicorn app.main:app --reload
 
 Wait for `Application startup complete`. The API health check is
 http://localhost:8000/api/health, and interactive API docs are at
-http://localhost:8000/docs. Tables are created automatically on startup.
+http://localhost:8000/docs. Missing tables, additive columns, and PostgreSQL search
+indexes are created automatically on startup.
+
+To update an existing database schema manually without starting the API server, run
+from `backend/`:
+
+```powershell
+python -m app.scripts.migrate_db
+```
 
 To check the API from another PowerShell terminal:
 
@@ -241,10 +287,11 @@ npm run dev
 Open http://localhost:5173. Leave this terminal open while using the app. Stop the
 frontend with `Ctrl+C`.
 
-The homepage searches TheMealDB. Saved recipes remain available at
-http://localhost:5173/my-recipes, and the search page calls the backend at
-`/api/meals/search?q=...`, matching the meal-search route used by the
-TheMealDB-implementation branch.
+The homepage searches TheMealDB via `/api/meals/search?q=...` and lets you inspect
+and import meals into your local library. Saved recipes are available at
+http://localhost:5173/my-recipes, where each recipe detail page supports Fineli
+ingredient matching (auto-match and manual search), editing ingredient quantities/units,
+and calculating nutrition estimates.
 
 ### Frontend tests
 
@@ -275,10 +322,16 @@ extensions. Select the Python interpreter at `backend/.venv`. There is also a
 - When you change a backend schema in `backend/app/schemas.py`, update
   `frontend/src/types.ts` to match.
 
+## Documentation
+
+- [FINELI_DATA_GUIDE.md](FINELI_DATA_GUIDE.md) — Fineli Rel20 dataset structure, staging/importing, unit conversions, and nutrition caveats.
+- [API_USAGE.md](API_USAGE.md) — Reference guide and integration rules for TheMealDB and Fineli.
+- [TESTING.md](TESTING.md) — Current automated test status and instructions for backend and frontend suites.
+
 ## Ideas for next steps
 
-- Edit recipe (PUT endpoint + form)
+- Edit recipe metadata and ingredient list (title, description, instructions, servings, and adding/removing ingredients; editing existing ingredient quantities/units is already supported via `PUT /api/recipes/{id}/ingredients` and the **Edit ingredients** view)
 - Categories / tags (many-to-many table)
-- Recipe images (upload or URL)
+- Custom recipe images (upload or URL for user-created and saved recipes; external TheMealDB search cards already show images and imports store `image_url`)
 - User accounts and login
-- Switch from `create_all` to Alembic migrations when the schema starts changing
+- Switch from `create_all` and `migrate_db.py` to Alembic migrations when the schema starts changing destructively
