@@ -117,6 +117,7 @@ def test_recalculate_returns_partial_detailed_totals_and_snapshots(client, monke
     assert result["coverage"] == {
         "total_ingredients": 2,
         "included_ingredients": 1,
+        "negligible_ingredients": 0,
         "ratio": 0.5,
     }
     assert [item["status"] for item in result["ingredient_results"]] == ["included", "skipped"]
@@ -140,6 +141,7 @@ def test_recalculate_with_zero_coverage_returns_unknown_totals(client) -> None:
     assert result["coverage"] == {
         "total_ingredients": 1,
         "included_ingredients": 0,
+        "negligible_ingredients": 0,
         "ratio": 0,
     }
     assert result["ingredient_results"][0]["reason"] == "unmatched"
@@ -284,7 +286,92 @@ def test_fineli_match_converts_volume_fallback_and_negligible_measure(client, mo
 
     calc = client.post(f"/api/recipes/{created['id']}/nutrition/recalculate")
     assert calc.status_code == 200
-    assert [item["reason"] for item in calc.json()["ingredient_results"]] == [
+    body = calc.json()
+    assert body["status"] == "completed"
+    assert body["coverage"] == {
+        "total_ingredients": 2,
+        "included_ingredients": 1,
+        "negligible_ingredients": 1,
+        "ratio": 1.0,
+    }
+    assert [item["reason"] for item in body["ingredient_results"]] == [
         None,
         "negligible_measure",
     ]
+
+
+def test_recalculate_filters_out_unwanted_fineli_components(client, monkeypatch) -> None:
+    food = fineli_food()
+    food["detailed_nutrients"] = [
+        {"code": "ENERC", "name": "Energy, calculated", "unit": "kJ", "group": "Energy", "value_per_100g": 418},
+        {"code": "PROT", "name": "Protein", "unit": "g", "group": "Macro-components", "value_per_100g": 10},
+        {"code": "ALC", "name": "Alcohol", "unit": "g", "group": "Alcohol", "value_per_100g": 0},
+        {"code": "ASH", "name": "Ash (minerals)", "unit": "g", "group": "Ash", "value_per_100g": 1.2},
+        {"code": "WATER", "name": "Water (moisture)", "unit": "g", "group": "Water", "value_per_100g": 70},
+        {"code": "F18D2CN6", "name": "Fatty acid 18:2", "unit": "mg", "group": "Fatty acids", "value_per_100g": 500},
+        {"code": "VITC", "name": "Vitamin C", "unit": "mg", "group": "Water soluble vitamins", "value_per_100g": 12},
+        {"code": "FE", "name": "Iron", "unit": "mg", "group": "Trace elements", "value_per_100g": 2.5},
+    ]
+    monkeypatch.setattr(LocalFineliClient, "get_food", lambda self, food_id: food)
+    recipe_id, _ = create_recipe(client)
+
+    calc = client.post(f"/api/recipes/{recipe_id}/nutrition/recalculate")
+    assert calc.status_code == 200
+    body = calc.json()
+    codes = [item["code"] for item in body["detailed_totals"]]
+    assert codes == ["ENERC", "FE", "PROT", "VITC"]
+    ing_codes = [item["code"] for item in body["ingredient_results"][0]["nutrients"]]
+    assert ing_codes == ["ENERC", "PROT", "VITC", "FE"]
+    assert "ALC" not in codes
+    assert "WATER" not in codes
+
+    saved = client.get(f"/api/recipes/{recipe_id}/nutrition")
+    assert saved.status_code == 200
+    assert [item["code"] for item in saved.json()["detailed_totals"]] == ["ENERC", "FE", "PROT", "VITC"]
+
+
+def test_get_nutrition_upgrades_legacy_v1_run_and_backfills_fineli_name(
+    client, monkeypatch
+) -> None:
+    from sqlalchemy.orm import Session
+    from app import main, models
+
+    mock_fineli(monkeypatch)
+    recipe_id, ingredient_id = create_recipe(client)
+
+    with Session(main.engine) as db:
+        ing = db.get(models.Ingredient, ingredient_id)
+        assert ing is not None
+        ing.fineli_name = None
+
+        run = models.NutritionCalculationRun(
+            recipe_id=recipe_id,
+            status="completed",
+            calculation_version="1",
+            is_active=True,
+        )
+        db.add(run)
+        db.flush()
+        db.add(
+            models.NutritionFact(
+                recipe_id=recipe_id,
+                run_id=run.id,
+                values={"energy_kcal": 100},
+                source={**fineli_food()["source"], "retrieved_at": "2026-01-01T00:00:00Z"},
+            )
+        )
+        db.commit()
+
+    response = client.get(f"/api/recipes/{recipe_id}/nutrition")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["coverage"] == {
+        "total_ingredients": 1,
+        "included_ingredients": 1,
+        "negligible_ingredients": 0,
+        "ratio": 1.0,
+    }
+    assert body["ingredient_results"][0]["fineli_name"] == "Test food"
+
+    recipe_body = client.get(f"/api/recipes/{recipe_id}").json()
+    assert recipe_body["ingredients"][0]["fineli_name"] == "Test food"

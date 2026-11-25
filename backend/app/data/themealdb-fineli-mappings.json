@@ -54,10 +54,10 @@
     "notes": "Wine vinegar is the closest available generic vinegar type in Fineli."
   },
   {
-    "mealdb_name": "asparagu",
+    "mealdb_name": "asparagus",
     "raw_name": "Asparagus",
     "fineli_id": "11689",
-    "search_hint": "asparagu",
+    "search_hint": "asparagus",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "Raw cleaned asparagus."
@@ -117,10 +117,10 @@
     "notes": null
   },
   {
-    "mealdb_name": "basil leave",
+    "mealdb_name": "basil leaf",
     "raw_name": "Basil Leaves",
     "fineli_id": "11134",
-    "search_hint": "basil leave",
+    "search_hint": "basil leaf",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "Fresh basil leaves."
@@ -142,15 +142,6 @@
     "default_weight_g": 0.5,
     "confidence": "low",
     "notes": "1 dried bay leaf ~ 0.5 g"
-  },
-  {
-    "mealdb_name": "bay leave",
-    "raw_name": "Bay Leaves",
-    "fineli_id": null,
-    "search_hint": "laakerinlehti",
-    "default_weight_g": null,
-    "confidence": "low",
-    "notes": null
   },
   {
     "mealdb_name": "beef brisket",
@@ -182,11 +173,11 @@
   {
     "mealdb_name": "beef stock",
     "raw_name": "Beef Stock",
-    "fineli_id": "38",
+    "fineli_id": "29",
     "search_hint": "meat bouillon",
     "default_weight_g": null,
     "confidence": "manual",
-    "notes": "Meat bouillon in Fineli."
+    "notes": "Liquid meat bouillon stock in Fineli."
   },
   {
     "mealdb_name": "bicarbonate of soda",
@@ -218,7 +209,7 @@
   {
     "mealdb_name": "black treacle",
     "raw_name": "Black Treacle",
-    "fineli_id": "3",
+    "fineli_id": null,
     "search_hint": "tumma siirappi",
     "default_weight_g": null,
     "confidence": "low",
@@ -263,11 +254,11 @@
   {
     "mealdb_name": "bread",
     "raw_name": "Bread",
-    "fineli_id": "1036",
-    "search_hint": "bread",
+    "fineli_id": "1309",
+    "search_hint": "white bread",
     "default_weight_g": null,
-    "confidence": "high",
-    "notes": "Rye bread is a common Finnish bread variety."
+    "confidence": "manual",
+    "notes": "Generic wheat white bread."
   },
   {
     "mealdb_name": "breadcrumb",
@@ -618,7 +609,7 @@
     "search_hint": "parsley",
     "default_weight_g": null,
     "confidence": "high",
-    "notes": null
+    "notes": "Raw parsley is the correct match."
   },
   {
     "mealdb_name": "tomato",
@@ -756,10 +747,10 @@
     "notes": null
   },
   {
-    "mealdb_name": "coriander leave",
+    "mealdb_name": "coriander leaf",
     "raw_name": "Coriander Leaves",
     "fineli_id": "34238",
-    "search_hint": "coriander leave",
+    "search_hint": "coriander leaf",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "Matches fresh coriander/cilantro."
@@ -810,10 +801,10 @@
     "notes": "Direct match for creme fraiche."
   },
   {
-    "mealdb_name": "cubed feta cheese",
+    "mealdb_name": "feta cheese",
     "raw_name": "Cubed Feta Cheese",
     "fineli_id": "29228",
-    "search_hint": "cubed feta cheese",
+    "search_hint": "feta cheese",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "Best available basic feta cheese candidate."
@@ -1125,7 +1116,7 @@
     "notes": "Raw peeled potato is the appropriate base ingredient."
   },
   {
-    "mealdb_name": "free range egg beaten",
+    "mealdb_name": "free range egg",
     "raw_name": "Free-range Egg, Beaten",
     "fineli_id": "34651",
     "search_hint": "kananmuna",
@@ -1152,22 +1143,13 @@
     "notes": "Only dried thyme available in list."
   },
   {
-    "mealdb_name": "freshly parsley",
-    "raw_name": "Freshly Chopped Parsley",
-    "fineli_id": "333",
-    "search_hint": "freshly parsley",
-    "default_weight_g": null,
-    "confidence": "high",
-    "notes": "Raw parsley is the correct match."
-  },
-  {
     "mealdb_name": "fry",
     "raw_name": "Fries",
-    "fineli_id": null,
-    "search_hint": "fry",
+    "fineli_id": "207",
+    "search_hint": "french fries",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Candidates provided are only fats/oils, not the food itself."
+    "confidence": "high",
+    "notes": "French fries."
   },
   {
     "mealdb_name": "full fat yogurt",
@@ -1442,11 +1424,11 @@
   {
     "mealdb_name": "hot beef stock",
     "raw_name": "Hot Beef Stock",
-    "fineli_id": "38",
+    "fineli_id": "29",
     "search_hint": "meat bouillon",
     "default_weight_g": null,
     "confidence": "manual",
-    "notes": "Meat bouillon in Fineli."
+    "notes": "Liquid meat bouillon stock in Fineli."
   },
   {
     "mealdb_name": "hotsauce",
@@ -1521,7 +1503,7 @@
     "notes": null
   },
   {
-    "mealdb_name": "khu khu",
+    "mealdb_name": "khus khus",
     "raw_name": "Khus Khus",
     "fineli_id": "35221",
     "search_hint": "unikonsiemen",
@@ -1838,7 +1820,7 @@
   {
     "mealdb_name": "onion salt",
     "raw_name": "Onion Salt",
-    "fineli_id": "335",
+    "fineli_id": null,
     "search_hint": "onion salt",
     "default_weight_g": null,
     "confidence": "low",
@@ -2333,7 +2315,7 @@
   {
     "mealdb_name": "mexican cheese",
     "raw_name": "Shredded Mexican Cheese",
-    "fineli_id": "33449",
+    "fineli_id": null,
     "search_hint": "mexican cheese",
     "default_weight_g": null,
     "confidence": "low",
@@ -2646,7 +2628,7 @@
     "notes": "No vinaigrette dressing in candidates."
   },
   {
-    "mealdb_name": "vine leave",
+    "mealdb_name": "vine leaf",
     "raw_name": "Vine Leaves",
     "fineli_id": "28928",
     "search_hint": "viininlehti",
@@ -2801,7 +2783,7 @@
   {
     "mealdb_name": "toffee popcorn",
     "raw_name": "Toffee Popcorn",
-    "fineli_id": "33069",
+    "fineli_id": null,
     "search_hint": "toffee popcorn",
     "default_weight_g": null,
     "confidence": "low",
@@ -3015,7 +2997,7 @@
     "notes": "No suitable crusty bread match in candidates (only rye bread and pie crusts)."
   },
   {
-    "mealdb_name": "fromage frai",
+    "mealdb_name": "fromage frais",
     "raw_name": "Fromage Frais",
     "fineli_id": "622",
     "search_hint": "fromage frais",
@@ -3096,10 +3078,10 @@
     "notes": "Pumpkin/winter squash in Fineli."
   },
   {
-    "mealdb_name": "couscou",
+    "mealdb_name": "couscous",
     "raw_name": "Couscous",
     "fineli_id": "29208",
-    "search_hint": "couscou",
+    "search_hint": "couscous",
     "default_weight_g": null,
     "confidence": "high",
     "notes": null
@@ -3395,14 +3377,14 @@
   {
     "mealdb_name": "peanut brittle",
     "raw_name": "Peanut Brittle",
-    "fineli_id": "378",
+    "fineli_id": null,
     "search_hint": "peanut brittle",
     "default_weight_g": null,
     "confidence": "low",
     "notes": "No direct match for brittle, mapping to raw peanuts as base ingredient."
   },
   {
-    "mealdb_name": "peache",
+    "mealdb_name": "peach",
     "raw_name": "Peaches",
     "fineli_id": "11051",
     "search_hint": "peach",
@@ -4023,7 +4005,7 @@
     "notes": "Direct match for white mould cheese (Brie/Camembert)."
   },
   {
-    "mealdb_name": "tarragon leave",
+    "mealdb_name": "tarragon leaf",
     "raw_name": "Tarragon Leaves",
     "fineli_id": null,
     "search_hint": "rakuuna",
@@ -4160,7 +4142,7 @@
   {
     "mealdb_name": "salt cod",
     "raw_name": "Salt Cod",
-    "fineli_id": "818",
+    "fineli_id": null,
     "search_hint": "salt cod",
     "default_weight_g": null,
     "confidence": "low",
@@ -4214,7 +4196,7 @@
   {
     "mealdb_name": "scotch bonnet",
     "raw_name": "Scotch Bonnet",
-    "fineli_id": "31557",
+    "fineli_id": null,
     "search_hint": "scotch bonnet",
     "default_weight_g": null,
     "confidence": "low",
@@ -4313,7 +4295,7 @@
   {
     "mealdb_name": "sichuan pepper",
     "raw_name": "Sichuan Pepper",
-    "fineli_id": "11177",
+    "fineli_id": null,
     "search_hint": "sichuan pepper",
     "default_weight_g": null,
     "confidence": "low",
@@ -4745,7 +4727,7 @@
   {
     "mealdb_name": "sriracha",
     "raw_name": "Sriracha",
-    "fineli_id": "33020",
+    "fineli_id": null,
     "search_hint": "sriracha",
     "default_weight_g": null,
     "confidence": "low",
@@ -5013,10 +4995,10 @@
     "notes": "Prunes without stone represent standard culinary prunes."
   },
   {
-    "mealdb_name": "grape leave",
+    "mealdb_name": "grape leaf",
     "raw_name": "Grape leaves",
     "fineli_id": "28928",
-    "search_hint": "grape leave",
+    "search_hint": "grape leaf",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "Canned grape leaves are standard for cooking."
@@ -5087,11 +5069,11 @@
   {
     "mealdb_name": "beef stock cube",
     "raw_name": "Beef Stock Cubes",
-    "fineli_id": null,
-    "search_hint": "beef stock cube",
-    "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Only fish stock cube available; no suitable match."
+    "fineli_id": "38",
+    "search_hint": "meat bouillon powder cube",
+    "default_weight_g": 10.0,
+    "confidence": "high",
+    "notes": "Dry meat bouillon cube."
   },
   {
     "mealdb_name": "lean steak",
@@ -5355,10 +5337,10 @@
     "notes": "Cheddar as a common semi-hard cheese proxy."
   },
   {
-    "mealdb_name": "white asparagu",
+    "mealdb_name": "white asparagus",
     "raw_name": "White Asparagus",
     "fineli_id": "340",
-    "search_hint": "white asparagu",
+    "search_hint": "white asparagus",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "Canned white asparagus."
@@ -5510,7 +5492,7 @@
   {
     "mealdb_name": "mixed beef cut",
     "raw_name": "Mixed Beef Cuts",
-    "fineli_id": "776",
+    "fineli_id": null,
     "search_hint": "mixed beef cut",
     "default_weight_g": null,
     "confidence": "low",
@@ -5528,7 +5510,7 @@
   {
     "mealdb_name": "beef cutlet",
     "raw_name": "Beef Cutlet",
-    "fineli_id": "721",
+    "fineli_id": null,
     "search_hint": "beef cutlet",
     "default_weight_g": null,
     "confidence": "low",
@@ -5589,10 +5571,10 @@
     "notes": null
   },
   {
-    "mealdb_name": "wild garlic leave",
+    "mealdb_name": "wild garlic leaf",
     "raw_name": "Wild Garlic Leaves",
     "fineli_id": null,
-    "search_hint": "wild garlic leave",
+    "search_hint": "wild garlic leaf",
     "default_weight_g": null,
     "confidence": "low",
     "notes": "Garlic bulb is not wild garlic leaves."
@@ -5636,11 +5618,11 @@
   {
     "mealdb_name": "seafood stock",
     "raw_name": "Seafood stock",
-    "fineli_id": "29010",
-    "search_hint": "kalaliemi",
+    "fineli_id": "75",
+    "search_hint": "fish stock broth",
     "default_weight_g": null,
-    "confidence": "high",
-    "notes": "Fish stock cube is the closest match for seafood stock."
+    "confidence": "manual",
+    "notes": "Liquid fish stock broth."
   },
   {
     "mealdb_name": "padron pepper",
@@ -5859,7 +5841,7 @@
     "notes": "Spice paste, curry paste is the closest match."
   },
   {
-    "mealdb_name": "makrut lime leave",
+    "mealdb_name": "makrut lime leaf",
     "raw_name": "makrut lime leaves",
     "fineli_id": null,
     "search_hint": "limetinlehti",
@@ -6066,7 +6048,7 @@
     "notes": "No direct match for galangal; provided options are fish-based."
   },
   {
-    "mealdb_name": "lime leave",
+    "mealdb_name": "lime leaf",
     "raw_name": "Lime Leaves",
     "fineli_id": null,
     "search_hint": "limetinlehti",
@@ -6230,7 +6212,7 @@
   {
     "mealdb_name": "oreo cream biscuit",
     "raw_name": "Oreo Cream Biscuits",
-    "fineli_id": "29753",
+    "fineli_id": null,
     "search_hint": "oreo cream biscuit",
     "default_weight_g": null,
     "confidence": "low",
@@ -6338,7 +6320,7 @@
   {
     "mealdb_name": "lamb stock",
     "raw_name": "Lamb Stock",
-    "fineli_id": "731",
+    "fineli_id": null,
     "search_hint": "lamb stock",
     "default_weight_g": null,
     "confidence": "low",
@@ -6356,7 +6338,7 @@
   {
     "mealdb_name": "szechuan peppercorn",
     "raw_name": "Szechuan Peppercorns",
-    "fineli_id": "11177",
+    "fineli_id": null,
     "search_hint": "sichuaninpippuri",
     "default_weight_g": null,
     "confidence": "low",
@@ -6471,7 +6453,7 @@
     "notes": "Lean white fish (cod) in Fineli."
   },
   {
-    "mealdb_name": "petit poi",
+    "mealdb_name": "petit pois",
     "raw_name": "Petit Pois",
     "fineli_id": "370",
     "search_hint": "herne",
@@ -6516,10 +6498,10 @@
     "notes": "Wine vinegar is vegan by nature"
   },
   {
-    "mealdb_name": "hummu",
+    "mealdb_name": "hummus",
     "raw_name": "Hummus",
     "fineli_id": "34666",
-    "search_hint": "hummu",
+    "search_hint": "hummus",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "Exact match for hummus chick pea paste"
@@ -6545,17 +6527,17 @@
   {
     "mealdb_name": "red pepper paste",
     "raw_name": "Red Pepper Paste",
-    "fineli_id": "386",
+    "fineli_id": null,
     "search_hint": "red pepper paste",
     "default_weight_g": null,
     "confidence": "low",
     "notes": "No explicit pepper paste, substituting raw red sweet pepper"
   },
   {
-    "mealdb_name": "pomegranate molasse",
+    "mealdb_name": "pomegranate molasses",
     "raw_name": "Pomegranate Molasses",
     "fineli_id": null,
-    "search_hint": "pomegranate molasse",
+    "search_hint": "pomegranate molasses",
     "default_weight_g": null,
     "confidence": "low",
     "notes": "Only whole pomegranate available, not molasses"
@@ -6752,7 +6734,7 @@
   {
     "mealdb_name": "pistachio paste",
     "raw_name": "Pistachio Paste",
-    "fineli_id": "31212",
+    "fineli_id": null,
     "search_hint": "pistachio paste",
     "default_weight_g": null,
     "confidence": "low",
@@ -6786,10 +6768,10 @@
     "notes": "White cabbage is the closest morphological match for hispi cabbage."
   },
   {
-    "mealdb_name": "baby lettuce leave",
+    "mealdb_name": "baby lettuce leaf",
     "raw_name": "Baby Lettuce Leaves",
     "fineli_id": "330",
-    "search_hint": "baby lettuce leave",
+    "search_hint": "baby lettuce leaf",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "General lettuce is the best fit among raw options."
@@ -6806,7 +6788,7 @@
   {
     "mealdb_name": "almond essence",
     "raw_name": "Almond Essence",
-    "fineli_id": "379",
+    "fineli_id": null,
     "search_hint": "almond essence",
     "default_weight_g": null,
     "confidence": "low",
@@ -6833,7 +6815,7 @@
   {
     "mealdb_name": "allspice berry",
     "raw_name": "Allspice Berries",
-    "fineli_id": "454",
+    "fineli_id": null,
     "search_hint": "allspice berry",
     "default_weight_g": null,
     "confidence": "low",
@@ -6867,10 +6849,10 @@
     "notes": null
   },
   {
-    "mealdb_name": "cabbage leave",
+    "mealdb_name": "cabbage leaf",
     "raw_name": "Cabbage Leaves",
     "fineli_id": "320",
-    "search_hint": "cabbage leave",
+    "search_hint": "cabbage leaf",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "White cabbage is the standard raw cabbage choice."
@@ -6941,16 +6923,16 @@
   {
     "mealdb_name": "frozen mixed berry",
     "raw_name": "Frozen Mixed Berries",
-    "fineli_id": "450",
-    "search_hint": "frozen mixed berry",
+    "fineli_id": "454",
+    "search_hint": "berry average",
     "default_weight_g": null,
-    "confidence": "low",
-    "notes": "Mixed berry jam is the only berry mix candidate, though not frozen whole berries."
+    "confidence": "manual",
+    "notes": "Average raw berries (not jam)."
   },
   {
     "mealdb_name": "blackcurrant jam",
     "raw_name": "Blackcurrant Jam",
-    "fineli_id": "444",
+    "fineli_id": null,
     "search_hint": "blackcurrant jam",
     "default_weight_g": null,
     "confidence": "low",
@@ -6966,7 +6948,7 @@
     "notes": "Whole egg without shell is standard for egg wash."
   },
   {
-    "mealdb_name": "molasse",
+    "mealdb_name": "molasses",
     "raw_name": "Molasses",
     "fineli_id": null,
     "search_hint": "melassi",
@@ -7004,7 +6986,7 @@
   {
     "mealdb_name": "peach juice",
     "raw_name": "Peach Juice",
-    "fineli_id": "30391",
+    "fineli_id": null,
     "search_hint": "peach juice",
     "default_weight_g": null,
     "confidence": "low",
@@ -7040,7 +7022,7 @@
   {
     "mealdb_name": "cassaba",
     "raw_name": "Cassaba",
-    "fineli_id": "11203",
+    "fineli_id": null,
     "search_hint": "hunajameloni",
     "default_weight_g": null,
     "confidence": "low",
@@ -7058,7 +7040,7 @@
   {
     "mealdb_name": "white yam",
     "raw_name": "White Yam",
-    "fineli_id": "34380",
+    "fineli_id": null,
     "search_hint": "white yam",
     "default_weight_g": null,
     "confidence": "low",
@@ -7281,7 +7263,7 @@
     "notes": "Tartar sauce is not a baking ingredient."
   },
   {
-    "mealdb_name": "dried leave of summer savoury",
+    "mealdb_name": "dried leaf of summer savoury",
     "raw_name": "Dried Leaves Of Summer Savoury",
     "fineli_id": null,
     "search_hint": "kesäkynteli kuivattu",
@@ -7355,11 +7337,11 @@
   {
     "mealdb_name": "shrimp stock",
     "raw_name": "Shrimp Stock",
-    "fineli_id": "29010",
-    "search_hint": "fish stock cube",
+    "fineli_id": "75",
+    "search_hint": "fish stock broth",
     "default_weight_g": null,
     "confidence": "manual",
-    "notes": "Seafood/fish stock cube."
+    "notes": "Liquid fish stock broth."
   },
   {
     "mealdb_name": "snapper fish",
@@ -7400,7 +7382,7 @@
   {
     "mealdb_name": "turkey neck",
     "raw_name": "Turkey Neck",
-    "fineli_id": "752",
+    "fineli_id": null,
     "search_hint": "turkey neck",
     "default_weight_g": null,
     "confidence": "low",
@@ -7515,7 +7497,7 @@
     "notes": "Chinese cabbage is equivalent to napa cabbage"
   },
   {
-    "mealdb_name": "cilantro leave",
+    "mealdb_name": "cilantro leaf",
     "raw_name": "Cilantro Leaves",
     "fineli_id": "34238",
     "search_hint": "coriander",
@@ -7544,11 +7526,11 @@
   {
     "mealdb_name": "unsalted beef stock",
     "raw_name": "Unsalted Beef Stock",
-    "fineli_id": "38",
+    "fineli_id": "29",
     "search_hint": "meat bouillon",
     "default_weight_g": null,
     "confidence": "manual",
-    "notes": "Meat bouillon in Fineli."
+    "notes": "Liquid meat bouillon stock in Fineli."
   },
   {
     "mealdb_name": "shaoxing wine",
@@ -7803,10 +7785,10 @@
     "notes": "Plain yoghurt is the closest available item."
   },
   {
-    "mealdb_name": "pickled grape leave",
+    "mealdb_name": "pickled grape leaf",
     "raw_name": "Pickled Grape Leaves",
     "fineli_id": "28928",
-    "search_hint": "pickled grape leave",
+    "search_hint": "pickled grape leaf",
     "default_weight_g": null,
     "confidence": "high",
     "notes": "Direct match for canned/pickled grape leaves."
@@ -7875,7 +7857,7 @@
     "notes": "Closest match for rice flour, though glutinous variety differs."
   },
   {
-    "mealdb_name": "pandan leave",
+    "mealdb_name": "pandan leaf",
     "raw_name": "Pandan Leaves",
     "fineli_id": null,
     "search_hint": "pandanlehti",
@@ -7929,7 +7911,7 @@
     "notes": null
   },
   {
-    "mealdb_name": "kaffir lime leave",
+    "mealdb_name": "kaffir lime leaf",
     "raw_name": "Kaffir Lime Leaves",
     "fineli_id": null,
     "search_hint": "kaffirlimetinlehti",
@@ -8118,7 +8100,7 @@
     "notes": "White radish is the exact match for daikon."
   },
   {
-    "mealdb_name": "date molasse",
+    "mealdb_name": "date molasses",
     "raw_name": "Date Molasses",
     "fineli_id": null,
     "search_hint": "taatelisiirappi",
@@ -8145,10 +8127,10 @@
     "notes": "Mustard in Fineli."
   },
   {
-    "mealdb_name": "banana leave",
+    "mealdb_name": "banana leaf",
     "raw_name": "Banana Leaves",
     "fineli_id": null,
-    "search_hint": "banana leave",
+    "search_hint": "banana leaf",
     "default_weight_g": null,
     "confidence": "low",
     "notes": "No banana leaves available in candidates."
@@ -8280,7 +8262,7 @@
     "notes": "No fermented Cambodian fish paste available."
   },
   {
-    "mealdb_name": "glutinou rice",
+    "mealdb_name": "glutinous rice",
     "raw_name": "Glutinous Rice",
     "fineli_id": null,
     "search_hint": "tahmariisi",
@@ -8399,7 +8381,7 @@
   {
     "mealdb_name": "banana pepper",
     "raw_name": "Banana Pepper",
-    "fineli_id": "386",
+    "fineli_id": null,
     "search_hint": "banana pepper",
     "default_weight_g": null,
     "confidence": "low",

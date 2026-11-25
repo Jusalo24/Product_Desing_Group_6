@@ -16,6 +16,38 @@ from app.integrations.fineli.measure import convert_measure_to_grams
 router = APIRouter(prefix="/recipes", tags=["nutrition"])
 NUTRIENT_FIELDS = tuple(schemas.NutritionValues.model_fields)
 
+# Only keep core macros (for totals/per-ingredient summaries) and key vitamins & minerals.
+ALLOWED_DETAILED_CODES = frozenset(
+    {
+        # Core macros
+        "ENERC",
+        "PROT",
+        "CHOAVL",
+        "FAT",
+        "FIBC",
+        "FIBT",
+        "NACL",
+        "SUGAR",
+        "FASAT",
+        # Key vitamins
+        "VITA",
+        "VITC",
+        "VITD",
+        "VITE",
+        "FOL",
+        "VITB12",
+        "THIA",
+        "RIBF",
+        # Key minerals
+        "CA",
+        "FE",
+        "K",
+        "MG",
+        "ZN",
+        "ID",
+    }
+)
+
 
 def _grams(quantity: float, unit: str) -> float:
     return quantity * 1000 if unit == "kg" else quantity
@@ -76,7 +108,11 @@ def _ingredient_results(
             ),
             "status": result.status,
             "reason": result.reason,
-            "nutrients": result.nutrient_contributions or [],
+            "nutrients": [
+                nutrient
+                for nutrient in (result.nutrient_contributions or [])
+                if nutrient.get("code") in ALLOWED_DETAILED_CODES
+            ],
         }
         for result, ingredient_name in rows
     ]
@@ -121,7 +157,13 @@ def _response(
         else None
     )
     included = sum(result["status"] == "included" for result in ingredient_results)
+    negligible = sum(
+        result["status"] == "skipped" and result["reason"] == "negligible_measure"
+        for result in ingredient_results
+    )
     count = len(ingredient_results)
+    quantifiable = count - negligible
+    ratio = included / quantifiable if (included > 0 and quantifiable > 0) else 0
     return {
         "recipe_id": recipe.id,
         "values": fact.values,
@@ -133,7 +175,8 @@ def _response(
         "coverage": {
             "total_ingredients": count,
             "included_ingredients": included,
-            "ratio": included / count if count else 0,
+            "negligible_ingredients": negligible,
+            "ratio": ratio,
         },
         "ingredient_results": ingredient_results,
     }
@@ -151,6 +194,16 @@ def get_nutrition(recipe_id: int, db: Session = Depends(get_db)):
     run = db.get(models.NutritionCalculationRun, fact.run_id)
     if run is None:
         raise HTTPException(500, "Nutrition calculation history is missing")
+    has_results = (
+        db.scalar(
+            select(models.NutritionIngredientResult.id)
+            .where(models.NutritionIngredientResult.run_id == run.id)
+            .limit(1)
+        )
+        is not None
+    )
+    if recipe.ingredients and (run.calculation_version != "2" or not has_results):
+        return recalculate_nutrition(recipe_id, db)
     return _response(recipe, run, fact, db)
 
 
@@ -225,6 +278,8 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
                     )
                 )
                 continue
+            if not ingredient.fineli_name:
+                ingredient.fineli_name = food["name"]
             sources.append(_source_value(food["source"]))
             grams = _grams(float(ingredient.quantity), ingredient.unit)
             values = food.get("nutrients_per_100g", {})
@@ -235,11 +290,14 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
                     contribution = float(value) * grams / 100
                     totals[field] = (totals[field] or 0.0) + contribution
             for nutrient in food.get("detailed_nutrients", []):
+                code = nutrient.get("code")
+                if code not in ALLOWED_DETAILED_CODES:
+                    continue
                 value = nutrient.get("value_per_100g")
                 if value is None:
                     continue
                 contribution = float(value) * grams / 100
-                code, unit = nutrient["code"], nutrient["unit"]
+                unit = nutrient["unit"]
                 key = (code, unit)
                 total = detailed_totals.setdefault(
                     key,
@@ -296,9 +354,13 @@ def recalculate_nutrition(recipe_id: int, db: Session = Depends(get_db)):
                 )
             )
         included = sum(result.status == "included" for result in ingredient_rows)
+        negligible = sum(
+            result.status == "skipped" and result.reason == "negligible_measure"
+            for result in ingredient_rows
+        )
         run.status = (
             "completed"
-            if included == len(ingredient_rows)
+            if included > 0 and included + negligible == len(ingredient_rows)
             else "partial"
             if included
             else "unavailable"

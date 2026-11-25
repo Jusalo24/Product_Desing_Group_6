@@ -94,6 +94,7 @@ class DetailedNutrientTotal(BaseModel):
 class NutritionCoverage(BaseModel):
     total_ingredients: int
     included_ingredients: int
+    negligible_ingredients: int = 0
     ratio: float
 
 

@@ -144,21 +144,21 @@ export default function MealSearchPage() {
 
         const body: unknown = await response.json();
         if (!Array.isArray(body) || !body.every(isMeal)) {
-          throw new Error("TheMealDB palautti odottamattoman vastauksen.");
+          throw new Error("TheMealDB returned an unexpected response.");
         }
         if (cancelled) return;
 
         setMeals(body);
         if (body.length === 0) {
-          setError("Reseptejä ei löytynyt. Kokeile toista hakusanaa.");
+          setError("No recipes found. Try another search term.");
         }
       } catch (err) {
         if (cancelled) return;
         console.error("TheMealDB search failed:", err);
         setError(
           err instanceof Error
-            ? `Reseptien haku epäonnistui: ${err.message}`
-            : "Reseptien haku epäonnistui tuntemattomasta syystä.",
+            ? `Recipe search failed: ${err.message}`
+            : "Recipe search failed for an unknown reason.",
         );
       } finally {
         if (!cancelled) setLoading(false);
@@ -204,7 +204,7 @@ export default function MealSearchPage() {
         <span>Results for “{query}”</span>
       </h1>
 
-      {loading && <p role="status">Haetaan...</p>}
+      {loading && <p role="status">Loading...</p>}
       {error && <p role="alert">{error}</p>}
 
       {selectedMeal && (
@@ -225,11 +225,11 @@ export default function MealSearchPage() {
               target="_blank"
               rel="noreferrer"
             >
-              Avaa resepti TheMealDB:ssä
+              Open recipe on TheMealDB
             </a>
           </p>
 
-          <h3>Ainekset</h3>
+          <h3>Ingredients</h3>
           {selectedMeal.ingredients.length > 0 ? (
             <ul>
               {selectedMeal.ingredients.map((ingredient, index) => (
@@ -240,29 +240,29 @@ export default function MealSearchPage() {
               ))}
             </ul>
           ) : (
-            <p>Ainesosia ei ole ilmoitettu.</p>
+            <p>No ingredients listed.</p>
           )}
 
-          <h3>Valmistusohje</h3>
+          <h3>Instructions</h3>
           {selectedMeal.instructions ? (
             <p className="instructions">
               {selectedMeal.instructions}
             </p>
           ) : (
-            <p>Valmistusohjetta ei ole ilmoitettu.</p>
+            <p>No instructions provided.</p>
           )}
 
           {selectedMeal.sourceUrl && (
             <p>
               <a href={selectedMeal.sourceUrl} target="_blank" rel="noreferrer">
-                Alkuperäinen lähde
+                Original source
               </a>
             </p>
           )}
           {selectedMeal.youtubeUrl && (
             <p>
               <a href={selectedMeal.youtubeUrl} target="_blank" rel="noreferrer">
-                Katso video-ohje
+                Watch video tutorial
               </a>
             </p>
           )}
@@ -281,7 +281,7 @@ export default function MealSearchPage() {
         </section>
       )}
 
-      <section aria-label="Hakutulokset" className="feature-grid">
+      <section aria-label="Search results" className="feature-grid">
         {meals.map((meal) => (
           <article key={meal.id} className="feature-card">
             {meal.imageUrl ? (
@@ -305,7 +305,7 @@ export default function MealSearchPage() {
               className="button secondary"
               onClick={() => setSelectedMeal(meal)}
             >
-              Näytä resepti
+              View recipe
             </button>
           </article>
         ))}

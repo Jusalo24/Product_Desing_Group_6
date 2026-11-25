@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 from app.database import get_db
 from app.integrations.fineli.factory import get_fineli_client
 from app.integrations.fineli.local_client import FineliFoodNotFound
-from app.integrations.fineli.matching import lookup_mapping
+from app.integrations.fineli.matching import (
+    AUTO_MATCH_CONFIDENCES,
+    is_exact_basic_food_match,
+    lookup_mapping,
+    normalize_ingredient_name,
+)
 from app.integrations.fineli.measure import convert_measure_to_grams
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
@@ -62,7 +67,7 @@ def apply_fineli_match_to_ingredient(
             ingredient.quantity = conversion.grams
             ingredient.unit = "g"
             ingredient.conversion_status = conversion.status
-    elif ingredient.unit in {"g", "kg"}:
+    elif ingredient.unit in {"g", "kg"} and ingredient.conversion_status not in {"exact", "estimated"}:
         ingredient.conversion_status = "exact"
 
     ingredient.fineli_id = food["id"]
@@ -91,13 +96,42 @@ def get_recipe(recipe_id: int, db: Session = Depends(get_db)):
 def create_recipe(payload: schemas.RecipeCreate, db: Session = Depends(get_db)):
     data = payload.model_dump(exclude={"ingredients"})
     recipe = models.Recipe(**data)
-    recipe.ingredients = [
-        models.Ingredient(
-            **i.model_dump(),
-            conversion_status="matched" if i.fineli_id else "unmatched",
-        )
-        for i in payload.ingredients
-    ]
+    ingredient_models: list[models.Ingredient] = []
+    has_fineli_ids = any(i.fineli_id for i in payload.ingredients)
+    client = get_fineli_client(db) if has_fineli_ids else None
+    try:
+        for i in payload.ingredients:
+            ing = models.Ingredient(**i.model_dump())
+            if not i.fineli_id:
+                ing.conversion_status = "unmatched"
+            else:
+                food = None
+                if client is not None:
+                    try:
+                        food = client.get_food(i.fineli_id)
+                    except FineliFoodNotFound:
+                        food = None
+                if food is not None:
+                    ing.fineli_id = None  # allow apply_fineli_match_to_ingredient to convert when quantity is None
+                    apply_fineli_match_to_ingredient(
+                        ing,
+                        food,
+                        db,
+                        quantity=i.quantity,
+                        unit=i.unit,
+                    )
+                else:
+                    ing.fineli_name = None
+                    ing.conversion_status = (
+                        "exact"
+                        if i.quantity is not None and i.unit in {"g", "kg"}
+                        else "unknown"
+                    )
+            ingredient_models.append(ing)
+    finally:
+        if client is not None:
+            client.close()
+    recipe.ingredients = ingredient_models
     db.add(recipe)
     db.commit()
     db.refresh(recipe)
@@ -109,6 +143,25 @@ def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
     recipe = db.get(models.Recipe, recipe_id)
     if recipe is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    run_ids = select(models.NutritionCalculationRun.id).where(
+        models.NutritionCalculationRun.recipe_id == recipe_id
+    )
+    db.execute(delete(models.NutritionFact).where(models.NutritionFact.recipe_id == recipe_id))
+    db.execute(
+        delete(models.NutritionCalculationItem).where(
+            models.NutritionCalculationItem.run_id.in_(run_ids)
+        )
+    )
+    db.execute(
+        delete(models.NutritionIngredientResult).where(
+            models.NutritionIngredientResult.run_id.in_(run_ids)
+        )
+    )
+    db.execute(
+        delete(models.NutritionCalculationRun).where(
+            models.NutritionCalculationRun.recipe_id == recipe_id
+        )
+    )
     db.delete(recipe)
     db.commit()
 
@@ -148,6 +201,9 @@ def update_ingredients(
             except FineliFoodNotFound:
                 existing.fineli_name = None
 
+            mapping = lookup_mapping(db, ingredient.name)
+            default_weight = mapping.get("default_weight_g") if mapping else None
+
             if ingredient.quantity is not None and ingredient.unit is not None:
                 existing.quantity = ingredient.quantity
                 existing.unit = ingredient.unit
@@ -158,6 +214,7 @@ def update_ingredients(
                     conversion = convert_measure_to_grams(
                         ingredient.amount,
                         food.get("units", []),
+                        default_weight_g=default_weight,
                         ingredient_name=ingredient.name,
                     )
                     if conversion is not None and conversion.status == "negligible":
@@ -170,15 +227,16 @@ def update_ingredients(
                             if ingredient.unit == "kg"
                             else ingredient.quantity
                         )
-                        if abs(payload_grams - conversion.grams) > 1e-6:
+                        existing.conversion_status = conversion.status
+                        if abs(payload_grams - conversion.grams) > 1e-3:
                             existing.quantity = conversion.grams
                             existing.unit = "g"
-                            existing.conversion_status = conversion.status
             elif food is not None:
                 existing.fineli_name = food["name"]
                 conversion = convert_measure_to_grams(
                     ingredient.amount,
                     food.get("units", []),
+                    default_weight_g=default_weight,
                     ingredient_name=ingredient.name,
                 )
                 if conversion is None:
@@ -288,11 +346,22 @@ def auto_match_ingredients(recipe_id: int, db: Session = Depends(get_db)):
                 continue
             mapping = lookup_mapping(db, ingredient.name)
             food = None
-            if mapping and mapping.get("fineli_id"):
+            if (
+                mapping
+                and mapping.get("fineli_id")
+                and mapping.get("confidence") in AUTO_MATCH_CONFIDENCES
+            ):
                 try:
                     food = client.get_food(str(mapping["fineli_id"]))
                 except FineliFoodNotFound:
                     food = None
+            if food is None:
+                normalized_query = normalize_ingredient_name(ingredient.name)
+                if normalized_query:
+                    for candidate in client.search_foods(normalized_query):
+                        if is_exact_basic_food_match(candidate, ingredient.name):
+                            food = candidate
+                            break
             if food is None:
                 continue
             apply_fineli_match_to_ingredient(ingredient, food, db)

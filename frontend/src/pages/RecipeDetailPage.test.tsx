@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import RecipeDetailPage from "./RecipeDetailPage";
+import type { NutritionResponse } from "../types";
 
 const ingredient = {
   id: 9,
@@ -54,7 +55,7 @@ const partialEstimate = {
     { code: "ENERC", name: "Energy", unit: "kcal", value: 100, group: "Energy", per_serving: 50 },
     { code: "PROT", name: "Protein", unit: "g", value: 10, group: "Macronutrients", per_serving: 5 },
   ],
-  coverage: { total_ingredients: 2, included_ingredients: 1, ratio: 0.5 },
+  coverage: { total_ingredients: 2, included_ingredients: 1, negligible_ingredients: 0, ratio: 0.5 },
   ingredient_results: [
     {
       ingredient_id: 9,
@@ -302,5 +303,256 @@ describe("RecipeDetailPage ingredient matching", () => {
     );
     expect(recalculateCallIndices).toHaveLength(1);
     expect(recalculateCallIndices[0]).toBeGreaterThan(autoMatchCallIndex);
+  });
+
+  it("supports custom Fineli search query and closing the match panel", async () => {
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Find Fineli match" }));
+    const searchInput = await screen.findByRole("searchbox", {
+      name: "Search Fineli for olive oil",
+    });
+    await user.clear(searchInput);
+    await user.type(searchInput, "extra virgin");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes("/api/ingredients/suggestions?q=extra+virgin"),
+      ),
+    ).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(
+      screen.queryByRole("searchbox", { name: "Search Fineli for olive oil" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows Auto-match for matched ingredients with unknown quantity and shows negligible coverage", async () => {
+    const unknownQtyRecipe = {
+      ...recipe,
+      ingredients: [
+        {
+          ...ingredient,
+          fineli_id: "100",
+          fineli_name: "Olive oil",
+          quantity: null,
+          unit: null,
+          conversion_status: "unknown",
+        },
+      ],
+    };
+    nutritionForPage = {
+      ...partialEstimate,
+      coverage: {
+        total_ingredients: 2,
+        included_ingredients: 1,
+        negligible_ingredients: 1,
+        ratio: 1,
+      },
+    };
+    fetchMock.mockImplementation(async (input) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3") return jsonResponse(unknownQtyRecipe);
+      if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse(nutritionForPage);
+      return jsonResponse({}, 404);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Auto-match ingredients" }),
+    ).toBeVisible();
+    expect(
+      await screen.findByText("Coverage: 1 of 2 ingredients (100%) · 1 negligible"),
+    ).toBeVisible();
+  });
+
+  it("shows an error alert when deleting a recipe fails", async () => {
+    vi.stubGlobal("confirm", () => true);
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3" && init?.method === "DELETE") {
+        return jsonResponse({}, 500);
+      }
+      if (url.pathname === "/api/recipes/3") return jsonResponse(recipe);
+      if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse({}, 404);
+      return jsonResponse({}, 404);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not delete recipe",
+    );
+  });
+
+  it("renders summary facts, collapsible vitamins & minerals, and compact ingredient macros", async () => {
+    const richEstimate: NutritionResponse = {
+      ...partialEstimate,
+      values: {
+        ...partialEstimate.values,
+        saturated_fat_g: 1.2,
+        sugars_g: 3.4,
+        fiber_g: 2.5,
+        salt_g: 0.5,
+      },
+      detailed_totals: [
+        ...partialEstimate.detailed_totals,
+        { code: "VITC", name: "Vitamin C", unit: "mg", value: 15, group: "Water soluble vitamins", per_serving: 7.5 },
+        { code: "FE", name: "Iron", unit: "mg", value: 2.2, group: "Trace elements", per_serving: 1.1 },
+      ],
+      ingredient_results: [
+        {
+          ingredient_id: 9,
+          ingredient_name: "olive oil",
+          fineli_id: "100",
+          fineli_name: "Olive oil",
+          quantity_grams: 13.5,
+          status: "included",
+          reason: null,
+          nutrients: [
+            { code: "ENERC", name: "Energy", unit: "kJ", value: 502.08, group: "Energy", per_serving: null },
+            { code: "PROT", name: "Protein", unit: "g", value: 0, group: "Macro", per_serving: null },
+            { code: "CHOAVL", name: "Carbohydrate", unit: "g", value: 0, group: "Macro", per_serving: null },
+            { code: "FAT", name: "Fat", unit: "g", value: 13.5, group: "Macro", per_serving: null },
+            { code: "VITC", name: "Vitamin C", unit: "mg", value: 15, group: "Vitamins", per_serving: null },
+          ],
+        },
+      ],
+    };
+    nutritionForPage = richEstimate as unknown as typeof partialEstimate;
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const summary = await screen.findByRole("list", { name: "Nutrition summary" });
+    expect(within(summary).getByText("Energy")).toBeVisible();
+    expect(within(summary).getByText("of which saturates")).toBeVisible();
+    expect(within(summary).getByText("of which sugars")).toBeVisible();
+    expect(within(summary).getByText("Fibre")).toBeVisible();
+    expect(within(summary).getByText("Salt")).toBeVisible();
+
+    // Collapsible vitamins & minerals starts closed and opens on click
+    const toggle = screen.getByText("Vitamins & minerals (2)");
+    const details = toggle.closest("details");
+    expect(details).not.toHaveAttribute("open");
+    await userEvent.setup().click(toggle);
+    expect(details).toHaveAttribute("open");
+    expect(screen.getByText("Vitamin C")).toBeVisible();
+    expect(screen.getByText("Iron")).toBeVisible();
+
+    // Compact 1-line ingredient macro summary (kcal converted from kJ)
+    const contributions = screen.getByRole("list", { name: "Ingredient nutrition results" });
+    expect(
+      within(contributions).getByText("120 kcal · Protein 0 g · Carbs 0 g · Fat 13.5 g"),
+    ).toBeVisible();
+  });
+
+  it("converts kilojoule ingredient unit to kcal and prioritizes macro previews on suggestions", async () => {
+    const richCandidate = {
+      ...candidate,
+      detailed_nutrients: [
+        { code: "ALC", name: "Alcohol", unit: "gram", group: "Alcohol", value_per_100g: 0 },
+        { code: "ASH", name: "Ash", unit: "gram", group: "Ash", value_per_100g: 0 },
+        { code: "CA", name: "Calcium", unit: "milligram", group: "Minerals", value_per_100g: 1 },
+        { code: "ENERC", name: "Energy,calculated", unit: "kilojoule", group: "Energy", value_per_100g: 3700 },
+        { code: "FAT", name: "Fat, total", unit: "gram", group: "Fat", value_per_100g: 100 },
+        { code: "PROT", name: "Protein, total", unit: "gram", group: "Protein", value_per_100g: 0 },
+      ],
+    };
+    const kjEstimate = {
+      ...partialEstimate,
+      ingredient_results: [
+        {
+          ingredient_id: 9,
+          ingredient_name: "olive oil",
+          fineli_id: "100",
+          fineli_name: "Olive oil",
+          quantity_grams: 100,
+          status: "included" as const,
+          reason: null,
+          nutrients: [
+            { code: "ENERC", name: "Energy,calculated", unit: "kilojoule", value: 418.4, group: "Energy", per_serving: null },
+          ],
+        },
+      ],
+    };
+    fetchMock.mockImplementation(async (input) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3") return jsonResponse(recipe);
+      if (url.pathname === "/api/recipes/3/nutrition") return jsonResponse(kjEstimate);
+      if (url.pathname === "/api/ingredients/suggestions") return jsonResponse([richCandidate]);
+      return jsonResponse({}, 404);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const contributions = await screen.findByRole("list", {
+      name: "Ingredient nutrition results",
+    });
+    expect(within(contributions).getByText("100 kcal")).toBeVisible();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Find Fineli match" }));
+    const suggestionList = await screen.findByRole("list", {
+      name: "Fineli suggestions for olive oil",
+    });
+    expect(within(suggestionList).getByText(/Energy,calculated: 3700 kilojoule\/100 g/)).toBeVisible();
+    expect(within(suggestionList).queryByText(/Alcohol:/)).not.toBeInTheDocument();
+  });
+
+  it("disables Calculate nutrition when a recipe has no ingredients", async () => {
+    const emptyRecipe = { ...recipe, ingredients: [] };
+    fetchMock.mockImplementation(async (input) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/recipes/3") return jsonResponse(emptyRecipe);
+      return jsonResponse({}, 404);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/recipes/3"]}>
+        <Routes>
+          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByText("Add ingredients before calculating nutrition."),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Calculate nutrition" })).toBeDisabled();
   });
 });

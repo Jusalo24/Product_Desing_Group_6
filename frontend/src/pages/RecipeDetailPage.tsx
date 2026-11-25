@@ -16,6 +16,8 @@ type EditableIngredient = {
   quantity: string;
   unit: "g" | "kg";
   fineli_id: string | null;
+  conversion_status?: string;
+  dirty: boolean;
 };
 
 export default function RecipeDetailPage() {
@@ -32,9 +34,13 @@ export default function RecipeDetailPage() {
   const [savingIngredients, setSavingIngredients] = useState(false);
   const [ingredientError, setIngredientError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Record<number, FineliFood[]>>({});
-  const [matchingIngredientId, setMatchingIngredientId] = useState<number | null>(null);
+  const [openMatchPanels, setOpenMatchPanels] = useState<Record<number, boolean>>({});
+  const [matchQueries, setMatchQueries] = useState<Record<number, string>>({});
+  const [busyIngredientIds, setBusyIngredientIds] = useState<Record<number, boolean>>({});
   const [autoMatching, setAutoMatching] = useState(false);
   const [matchErrors, setMatchErrors] = useState<Record<number, string>>({});
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -99,11 +105,21 @@ export default function RecipeDetailPage() {
     await refreshNutrition(recipe.id);
   }
 
-  async function findFineliMatches(ingredientId: number, name: string) {
-    setMatchingIngredientId(ingredientId);
+  async function findFineliMatches(ingredientId: number, query: string) {
+    const trimmed = query.trim();
+    setOpenMatchPanels((current) => ({ ...current, [ingredientId]: true }));
+    setMatchQueries((current) => ({ ...current, [ingredientId]: query }));
+    if (!trimmed) {
+      setMatchErrors((errors) => ({
+        ...errors,
+        [ingredientId]: "Enter a search term for Fineli.",
+      }));
+      return;
+    }
+    setBusyIngredientIds((current) => ({ ...current, [ingredientId]: true }));
     setMatchErrors((errors) => ({ ...errors, [ingredientId]: "" }));
     try {
-      const candidates = await api.suggestIngredients(name);
+      const candidates = await api.suggestIngredients(trimmed);
       setSuggestions((current) => ({ ...current, [ingredientId]: candidates }));
     } catch (err) {
       setMatchErrors((errors) => ({
@@ -111,13 +127,18 @@ export default function RecipeDetailPage() {
         [ingredientId]: err instanceof Error ? err.message : "Could not search Fineli foods.",
       }));
     } finally {
-      setMatchingIngredientId(null);
+      setBusyIngredientIds((current) => ({ ...current, [ingredientId]: false }));
     }
+  }
+
+  function closeMatchPanel(ingredientId: number) {
+    setOpenMatchPanels((current) => ({ ...current, [ingredientId]: false }));
+    setMatchErrors((errors) => ({ ...errors, [ingredientId]: "" }));
   }
 
   async function confirmFineliMatch(ingredientId: number, food: FineliFood) {
     if (!recipe) return;
-    setMatchingIngredientId(ingredientId);
+    setBusyIngredientIds((current) => ({ ...current, [ingredientId]: true }));
     setMatchErrors((errors) => ({ ...errors, [ingredientId]: "" }));
     try {
       const matched = await api.matchIngredient(recipe.id, ingredientId, food.id);
@@ -137,7 +158,8 @@ export default function RecipeDetailPage() {
         delete next[ingredientId];
         return next;
       });
-      setMatchingIngredientId(null);
+      setOpenMatchPanels((current) => ({ ...current, [ingredientId]: false }));
+      setBusyIngredientIds((current) => ({ ...current, [ingredientId]: false }));
       await refreshNutrition(recipe.id);
     } catch (err) {
       setMatchErrors((errors) => ({
@@ -145,7 +167,7 @@ export default function RecipeDetailPage() {
         [ingredientId]: err instanceof Error ? err.message : "Could not save Fineli match.",
       }));
     } finally {
-      setMatchingIngredientId(null);
+      setBusyIngredientIds((current) => ({ ...current, [ingredientId]: false }));
     }
   }
 
@@ -169,8 +191,20 @@ export default function RecipeDetailPage() {
 
   async function handleDelete() {
     if (!recipe || !window.confirm("Delete this recipe?")) return;
-    await api.deleteRecipe(recipe.id);
-    navigate("/my-recipes");
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await api.deleteRecipe(recipe.id);
+      navigate("/my-recipes");
+    } catch (e) {
+      setDeleteError(
+        e instanceof Error
+          ? `Could not delete recipe: ${e.message}`
+          : "Could not delete recipe.",
+      );
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function startEditingIngredients() {
@@ -183,6 +217,8 @@ export default function RecipeDetailPage() {
         quantity: ingredient.quantity?.toString() ?? "",
         unit: ingredient.unit === "kg" ? "kg" : "g",
         fineli_id: ingredient.fineli_id ?? null,
+        conversion_status: ingredient.conversion_status,
+        dirty: false,
       })) ?? [],
     );
     setEditingIngredients(true);
@@ -195,8 +231,16 @@ export default function RecipeDetailPage() {
 
   async function saveIngredients() {
     if (!recipe) return;
-    if (draftIngredients.some((ingredient) => !ingredient.quantity || Number(ingredient.quantity) <= 0)) {
-      setIngredientError("Add a valid amount for every ingredient.");
+    const hasInvalidQuantity = draftIngredients.some((ingredient) => {
+      const trimmed = ingredient.quantity.trim();
+      if (!trimmed) {
+        return false;
+      }
+      const parsed = Number(trimmed);
+      return !Number.isFinite(parsed) || parsed <= 0;
+    });
+    if (hasInvalidQuantity) {
+      setIngredientError("Amounts must be positive numbers.");
       return;
     }
 
@@ -204,17 +248,26 @@ export default function RecipeDetailPage() {
     setIngredientError(null);
     try {
       const updated = await api.updateIngredients(recipe.id, {
-        ingredients: draftIngredients.map((ingredient) => ({
-          name: ingredient.name,
-          amount: `${ingredient.quantity} ${ingredient.unit}`,
-          quantity: Number(ingredient.quantity),
-          unit: ingredient.unit,
-          fineli_id: ingredient.fineli_id,
-        })),
+        ingredients: draftIngredients.map((ingredient) => {
+          const trimmed = ingredient.quantity.trim();
+          const hasQty = trimmed !== "";
+          const qtyValue = hasQty ? Number(trimmed) : null;
+          return {
+            name: ingredient.name,
+            amount:
+              ingredient.dirty && hasQty
+                ? `${trimmed} ${ingredient.unit}`
+                : ingredient.amount,
+            quantity: qtyValue,
+            unit: hasQty ? ingredient.unit : null,
+            fineli_id: ingredient.fineli_id,
+          };
+        }),
       });
       setRecipe(updated);
       setNutrition(null);
       setEditingIngredients(false);
+      await refreshNutrition(updated.id);
     } catch (e) {
       setIngredientError((e as Error).message);
     } finally {
@@ -225,15 +278,14 @@ export default function RecipeDetailPage() {
   if (error) return <p className="error">Could not load recipe: {error}</p>;
   if (!recipe) return <p>Loading…</p>;
 
-  const detailedGroups = groupNutrients(nutrition?.detailed_totals ?? []);
-  const legacyNutrients = Object.entries(nutrition?.values ?? {})
-    .filter((entry): entry is [string, number] => entry[1] !== null)
-    .map(([key, value]) => ({
-      name: legacyNutrientNames[key] ?? key,
-      unit: legacyNutrientUnits[key] ?? "",
-      value,
-      perServing: nutrition?.per_serving_values?.[key] ?? null,
-    }));
+  const coreNutrients = buildCoreNutrients(
+    nutrition?.values,
+    nutrition?.per_serving_values,
+  );
+  const micronutrients = (nutrition?.detailed_totals ?? []).filter(
+    (nutrient) => !MACRO_COMPONENT_CODES.has(nutrient.code),
+  );
+  const micronutrientGroups = groupNutrients(micronutrients);
 
   return (
     <article className="recipe-detail">
@@ -282,18 +334,23 @@ export default function RecipeDetailPage() {
             </div>
             <span className="section-count">{recipe.ingredients.length}</span>
           </div>
-          {!editingIngredients && recipe.ingredients.some((item) => !item.fineli_id) && (
-            <div className="ingredient-edit-actions">
-              <button
-                type="button"
-                className="button secondary"
-                onClick={autoMatchAll}
-                disabled={autoMatching}
-              >
-                {autoMatching ? "Auto-matching…" : "Auto-match ingredients"}
-              </button>
-            </div>
-          )}
+          {!editingIngredients &&
+            recipe.ingredients.some(
+              (item) =>
+                !item.fineli_id ||
+                (item.quantity == null && item.conversion_status !== "negligible"),
+            ) && (
+              <div className="ingredient-edit-actions">
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={autoMatchAll}
+                  disabled={autoMatching}
+                >
+                  {autoMatching ? "Auto-matching…" : "Auto-match ingredients"}
+                </button>
+              </div>
+            )}
           {editingIngredients ? (
             <div className="ingredient-edit-list">
               {draftIngredients.map((ingredient, index) => (
@@ -304,12 +361,13 @@ export default function RecipeDetailPage() {
                     min="0.001"
                     step="any"
                     value={ingredient.quantity}
+                    placeholder={ingredient.amount || "g"}
                     aria-label={`Amount for ${ingredient.name}`}
                     onChange={(event) =>
                       setDraftIngredients((current) =>
                         current.map((item, itemIndex) =>
                           itemIndex === index
-                            ? { ...item, quantity: event.target.value, amount: event.target.value }
+                            ? { ...item, quantity: event.target.value, dirty: true }
                             : item,
                         ),
                       )
@@ -323,7 +381,7 @@ export default function RecipeDetailPage() {
                       setDraftIngredients((current) =>
                         current.map((item, itemIndex) =>
                           itemIndex === index
-                            ? { ...item, unit: event.target.value as "g" | "kg" }
+                            ? { ...item, unit: event.target.value as "g" | "kg", dirty: true }
                             : item,
                         ),
                       )
@@ -368,50 +426,87 @@ export default function RecipeDetailPage() {
                     type="button"
                     className="button secondary"
                     onClick={() => findFineliMatches(i.id, i.name)}
-                    disabled={matchingIngredientId === i.id}
+                    disabled={!!busyIngredientIds[i.id]}
                   >
-                    {matchingIngredientId === i.id
+                    {busyIngredientIds[i.id]
                       ? "Searching Fineli…"
                       : i.fineli_id
                         ? "Change Fineli match"
                         : "Find Fineli match"}
                   </button>
-                  {matchErrors[i.id] && <p className="error">{matchErrors[i.id]}</p>}
-                  {suggestions[i.id]?.length ? (
-                    <ul aria-label={`Fineli suggestions for ${i.name}`}>
-                      {suggestions[i.id].map((food) => (
-                        <li key={food.id}>
-                          <strong>{food.name}</strong>
-                          {(food.food_type || food.process) && (
-                            <p className="muted-copy">
-                              {[food.food_type, food.process].filter(Boolean).join(" · ")}
-                            </p>
-                          )}
-                          {food.detailed_nutrients.slice(0, 3).length > 0 && (
-                            <p>
-                              {food.detailed_nutrients
-                                .slice(0, 3)
-                                .map(
-                                  (nutrient) =>
-                                    `${nutrient.name}: ${nutrient.value_per_100g} ${nutrient.unit}/100 g`,
-                                )
-                                .join(" · ")}
-                            </p>
-                          )}
-                          <button
-                            type="button"
-                            className="button secondary"
-                            onClick={() => confirmFineliMatch(i.id, food)}
-                            disabled={matchingIngredientId === i.id}
-                          >
-                            Use {food.name}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : suggestions[i.id] ? (
-                    <p className="muted-copy">No matching Fineli foods found.</p>
-                  ) : null}
+                  {openMatchPanels[i.id] && (
+                    <div className="fineli-match-panel">
+                      <form
+                        className="fineli-match-search"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void findFineliMatches(i.id, matchQueries[i.id] ?? i.name);
+                        }}
+                      >
+                        <input
+                          type="search"
+                          value={matchQueries[i.id] ?? i.name}
+                          onChange={(event) =>
+                            setMatchQueries((current) => ({
+                              ...current,
+                              [i.id]: event.target.value,
+                            }))
+                          }
+                          aria-label={`Search Fineli for ${i.name}`}
+                          placeholder="Search Fineli foods"
+                        />
+                        <button
+                          type="submit"
+                          className="button secondary"
+                          disabled={!!busyIngredientIds[i.id]}
+                        >
+                          Search
+                        </button>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => closeMatchPanel(i.id)}
+                        >
+                          Close
+                        </button>
+                      </form>
+                      {matchErrors[i.id] && <p className="error">{matchErrors[i.id]}</p>}
+                      {suggestions[i.id]?.length ? (
+                        <ul className="fineli-suggestions" aria-label={`Fineli suggestions for ${i.name}`}>
+                          {suggestions[i.id].map((food) => (
+                            <li key={food.id}>
+                              <strong>{food.name}</strong>
+                              {(food.food_type || food.process) && (
+                                <p className="muted-copy">
+                                  {[food.food_type, food.process].filter(Boolean).join(" · ")}
+                                </p>
+                              )}
+                              {previewSuggestionNutrients(food.detailed_nutrients).length > 0 && (
+                                <p>
+                                  {previewSuggestionNutrients(food.detailed_nutrients)
+                                    .map(
+                                      (nutrient) =>
+                                        `${nutrient.name}: ${nutrient.value_per_100g} ${nutrient.unit}/100 g`,
+                                    )
+                                    .join(" · ")}
+                                </p>
+                              )}
+                              <button
+                                type="button"
+                                className="button secondary"
+                                onClick={() => confirmFineliMatch(i.id, food)}
+                                disabled={!!busyIngredientIds[i.id]}
+                              >
+                                Use {food.name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : suggestions[i.id] && !busyIngredientIds[i.id] ? (
+                        <p className="muted-copy">No matching Fineli foods found.</p>
+                      ) : null}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -436,6 +531,8 @@ export default function RecipeDetailPage() {
                 Coverage: {nutrition.coverage.included_ingredients} of{" "}
                 {nutrition.coverage.total_ingredients} ingredients (
                 {Math.round(nutrition.coverage.ratio * 100)}%)
+                {(nutrition.coverage.negligible_ingredients ?? 0) > 0 &&
+                  ` · ${nutrition.coverage.negligible_ingredients} negligible`}
               </p>
               {nutrition.coverage.included_ingredients === 0 ? (
                 <p className="muted-copy">
@@ -443,70 +540,89 @@ export default function RecipeDetailPage() {
                 </p>
               ) : (
                 <>
-                  {detailedGroups.size > 0 ? (
-                    Array.from(detailedGroups.entries()).map(([group, nutrients]) => (
-                      <section key={group}>
-                        <h3>{group}</h3>
-                        <ul>
-                          {nutrients.map((nutrient) => (
-                            <li key={`${nutrient.code}-${nutrient.unit}`}>
-                              <strong>{nutrient.name}:</strong>{" "}
-                              {formatNutrient(nutrient.value, nutrient.unit)}
-                              {nutrient.per_serving != null &&
-                                ` (per serving: ${formatNutrient(nutrient.per_serving, nutrient.unit)})`}
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-                    ))
-                  ) : (
-                    <dl className="nutrition-grid">
-                      {legacyNutrients.map((nutrient) => (
-                        <NutritionValue
-                          key={nutrient.name}
-                          label={nutrient.name}
-                          value={nutrient.value}
-                          unit={nutrient.unit}
-                        />
-                      ))}
-                    </dl>
+                  <ul className="nutrition-facts" aria-label="Nutrition summary">
+                    {coreNutrients.map((row) => (
+                      <li
+                        key={row.key}
+                        className={row.indented ? "nutrition-fact-sub" : "nutrition-fact"}
+                      >
+                        <span className="nutrition-fact-label">{row.label}</span>
+                        <span className="nutrition-fact-values">
+                          <strong>{row.totalText}</strong>
+                          {row.perServingText && (
+                            <span className="muted-copy">
+                              per serving: {row.perServingText}
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {micronutrientGroups.size > 0 && (
+                    <details className="nutrition-details">
+                      <summary>Vitamins &amp; minerals ({micronutrients.length})</summary>
+                      <div className="nutrition-details-body">
+                        {Array.from(micronutrientGroups.entries()).map(([group, nutrients]) => (
+                          <section key={group}>
+                            <h3>{group}</h3>
+                            <ul className="nutrition-micronutrient-list">
+                              {nutrients.map((nutrient) => (
+                                <li key={`${nutrient.code}-${nutrient.unit}`}>
+                                  <span>{nutrient.name}</span>
+                                  <span>
+                                    {formatNutrient(nutrient.value, nutrient.unit)}
+                                    {nutrient.per_serving != null &&
+                                      ` (per serving: ${formatNutrient(nutrient.per_serving, nutrient.unit)})`}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
+                        ))}
+                      </div>
+                    </details>
                   )}
                 </>
               )}
               <h3>Ingredient contributions</h3>
-              <ul aria-label="Ingredient nutrition results">
-                {nutrition.ingredient_results.map((result) => (
-                  <li key={result.ingredient_id}>
-                    <strong>{result.ingredient_name}</strong>
-                    {result.status === "included" ? (
-                      <>
-                        <p>
-                          Fineli match: {result.fineli_name ?? result.fineli_id}
-                          {result.quantity_grams != null &&
-                            ` · ${formatNutrient(result.quantity_grams, "g")}`}
-                        </p>
-                        {result.nutrients.length > 0 && (
-                          <ul>
-                            {result.nutrients.map((nutrient) => (
-                              <li key={`${nutrient.code}-${nutrient.unit}`}>
-                                {nutrient.name}: {formatNutrient(nutrient.value, nutrient.unit)}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </>
-                    ) : (
-                      <p>Skipped: {skippedReason(result)}</p>
-                    )}
-                  </li>
-                ))}
+              <ul className="ingredient-contributions" aria-label="Ingredient nutrition results">
+                {nutrition.ingredient_results.map((result) => {
+                  const macroSummary =
+                    result.status === "included"
+                      ? summarizeIngredientMacros(result.nutrients)
+                      : null;
+                  return (
+                    <li key={result.ingredient_id}>
+                      <strong>{result.ingredient_name}</strong>
+                      {result.status === "included" ? (
+                        <>
+                          <p>
+                            Fineli match: {result.fineli_name ?? result.fineli_id}
+                            {result.quantity_grams != null &&
+                              ` · ${formatNutrient(result.quantity_grams, "g")}`}
+                          </p>
+                          {macroSummary && <p className="muted-copy">{macroSummary}</p>}
+                        </>
+                      ) : (
+                        <p>Skipped: {skippedReason(result)}</p>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </>
           ) : (
             <p className="muted-copy">Calculate nutrition from the selected Fineli ingredients.</p>
           )}
           {nutritionError && <p className="error">{nutritionError}</p>}
-          <button className="button nutrition-button" onClick={calculateNutrition} disabled={nutritionLoading}>
+          {recipe.ingredients.length === 0 && (
+            <p className="muted-copy">Add ingredients before calculating nutrition.</p>
+          )}
+          <button
+            className="button nutrition-button"
+            onClick={calculateNutrition}
+            disabled={nutritionLoading || recipe.ingredients.length === 0}
+          >
             {nutritionLoading ? "Calculating…" : nutrition ? "Recalculate nutrition" : "Calculate nutrition"}
           </button>
           {nutrition && <small className="attribution">{nutrition.source.attribution_text}</small>}
@@ -530,53 +646,150 @@ export default function RecipeDetailPage() {
         <p className="instructions">{recipe.instructions || "No instructions added yet."}</p>
       </section>
 
-      <button className="button danger detail-delete" onClick={handleDelete}>
-        Delete
+      {deleteError && (
+        <p className="error" role="alert">
+          {deleteError}
+        </p>
+      )}
+      <button
+        className="button danger detail-delete"
+        onClick={handleDelete}
+        disabled={deleting}
+      >
+        {deleting ? "Deleting…" : "Delete"}
       </button>
     </article>
   );
 }
 
-function NutritionValue({
-  label,
-  value,
-  unit,
-}: {
+const MACRO_COMPONENT_CODES = new Set([
+  "ENERC",
+  "PROT",
+  "CHOAVL",
+  "CHOCDF",
+  "FAT",
+  "FIBC",
+  "FIBT",
+  "NACL",
+  "SUGAR",
+  "FASAT",
+]);
+
+const CORE_NUTRIENT_ROWS: {
+  key: string;
   label: string;
-  value: number | null | undefined;
   unit: string;
-}) {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{value == null ? "—" : `${value.toFixed(1)} ${unit}`}</dd>
-    </div>
-  );
+  indented?: boolean;
+}[] = [
+  { key: "fat_g", label: "Fat", unit: "g" },
+  { key: "saturated_fat_g", label: "of which saturates", unit: "g", indented: true },
+  { key: "carbohydrates_g", label: "Carbohydrates", unit: "g" },
+  { key: "sugars_g", label: "of which sugars", unit: "g", indented: true },
+  { key: "fiber_g", label: "Fibre", unit: "g" },
+  { key: "protein_g", label: "Protein", unit: "g" },
+  { key: "salt_g", label: "Salt", unit: "g" },
+];
+
+type CoreNutrientRow = {
+  key: string;
+  label: string;
+  totalText: string;
+  perServingText: string | null;
+  indented?: boolean;
+};
+
+function buildCoreNutrients(
+  values: Record<string, number | null> | undefined,
+  perServing: Record<string, number | null> | undefined | null,
+): CoreNutrientRow[] {
+  if (!values) return [];
+  const rows: CoreNutrientRow[] = [];
+
+  const kcal = values.energy_kcal;
+  const kj = values.energy_kj;
+  if (kcal != null || kj != null) {
+    const totalText =
+      kcal != null && kj != null
+        ? `${formatNutrient(kcal, "kcal")} (${formatNutrient(kj, "kJ")})`
+        : kcal != null
+          ? formatNutrient(kcal, "kcal")
+          : formatNutrient(kj as number, "kJ");
+    const psKcal = perServing?.energy_kcal;
+    const psKj = perServing?.energy_kj;
+    const perServingText =
+      psKcal != null
+        ? formatNutrient(psKcal, "kcal")
+        : psKj != null
+          ? formatNutrient(psKj, "kJ")
+          : null;
+    rows.push({ key: "energy", label: "Energy", totalText, perServingText });
+  }
+
+  for (const spec of CORE_NUTRIENT_ROWS) {
+    const val = values[spec.key];
+    if (val == null) continue;
+    const ps = perServing?.[spec.key];
+    rows.push({
+      key: spec.key,
+      label: spec.label,
+      totalText: formatNutrient(val, spec.unit),
+      perServingText: ps != null ? formatNutrient(ps, spec.unit) : null,
+      indented: spec.indented,
+    });
+  }
+  return rows;
 }
 
-const legacyNutrientNames: Record<string, string> = {
-  energy_kcal: "Energy",
-  energy_kj: "Energy",
-  protein_g: "Protein",
-  carbohydrates_g: "Carbohydrates",
-  fat_g: "Fat",
-  fiber_g: "Fiber",
-  salt_g: "Salt",
-  sugars_g: "Sugars",
-  saturated_fat_g: "Saturated fat",
-};
+function summarizeIngredientMacros(nutrients: DetailedNutrientTotal[]): string | null {
+  const byCode = new Map(nutrients.map((n) => [n.code, n]));
+  const parts: string[] = [];
 
-const legacyNutrientUnits: Record<string, string> = {
-  energy_kcal: "kcal",
-  energy_kj: "kJ",
-  protein_g: "g",
-  carbohydrates_g: "g",
-  fat_g: "g",
-  fiber_g: "g",
-  salt_g: "g",
-  sugars_g: "g",
-  saturated_fat_g: "g",
-};
+  const enerc = byCode.get("ENERC");
+  if (enerc) {
+    const unit = enerc.unit.toLowerCase();
+    const kcal =
+      unit === "kcal"
+        ? enerc.value
+        : unit === "kj" || unit === "kilojoule"
+          ? enerc.value / 4.184
+          : null;
+    if (kcal != null) {
+      parts.push(formatNutrient(kcal, "kcal"));
+    }
+  }
+  const prot = byCode.get("PROT");
+  if (prot) parts.push(`Protein ${formatNutrient(prot.value, prot.unit)}`);
+  const cho = byCode.get("CHOAVL");
+  if (cho) parts.push(`Carbs ${formatNutrient(cho.value, cho.unit)}`);
+  const fat = byCode.get("FAT");
+  if (fat) parts.push(`Fat ${formatNutrient(fat.value, fat.unit)}`);
+
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+const SUGGESTION_PREVIEW_CODES = ["ENERC", "PROT", "CHOAVL", "FAT"] as const;
+
+function previewSuggestionNutrients(
+  nutrients: FineliFood["detailed_nutrients"],
+): FineliFood["detailed_nutrients"] {
+  const byCode = new Map(nutrients.map((nutrient) => [nutrient.code, nutrient]));
+  const preferred: FineliFood["detailed_nutrients"] = [];
+  for (const code of SUGGESTION_PREVIEW_CODES) {
+    const match = byCode.get(code);
+    if (match) preferred.push(match);
+  }
+  if (preferred.length >= 3) {
+    return preferred.slice(0, 3);
+  }
+  const seen = new Set(preferred.map((nutrient) => nutrient.code));
+  for (const nutrient of nutrients) {
+    if (!seen.has(nutrient.code)) {
+      preferred.push(nutrient);
+      if (preferred.length >= 3) break;
+    }
+  }
+  return preferred;
+}
 
 const skippedReasons: Record<string, string> = {
   unmatched: "No Fineli food selected",

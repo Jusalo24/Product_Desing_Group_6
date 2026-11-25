@@ -335,3 +335,231 @@ def test_ingredient_edit_handles_missing_mapped_fineli_food(
     assert ingredient["quantity"] is None
     assert ingredient["unit"] is None
     assert ingredient["conversion_status"] == "unknown"
+
+
+def test_create_recipe_populates_fineli_name_and_conversion_status(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        LocalFineliClient,
+        "get_food",
+        lambda self, food_id: {
+            "id": food_id,
+            "name": "Olive oil",
+            "units": [{"code": "RKL", "name": "tablespoon", "grams": 13.5}],
+        },
+    )
+    response = client.post(
+        "/api/recipes",
+        json={
+            "title": "Dressing",
+            "ingredients": [
+                {
+                    "name": "Olive oil",
+                    "amount": "20 g",
+                    "quantity": 20,
+                    "unit": "g",
+                    "fineli_id": "100",
+                },
+                {
+                    "name": "Olive oil",
+                    "amount": "2 tbsp",
+                    "fineli_id": "100",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+    exact_ing, estimated_ing = response.json()["ingredients"]
+    assert exact_ing["fineli_name"] == "Olive oil"
+    assert exact_ing["conversion_status"] == "exact"
+    assert estimated_ing["fineli_name"] == "Olive oil"
+    assert estimated_ing["quantity"] == pytest.approx(27.0)
+    assert estimated_ing["unit"] == "g"
+    assert estimated_ing["conversion_status"] == "estimated"
+
+
+def test_reconfirming_same_fineli_match_preserves_estimated_status(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        LocalFineliClient,
+        "get_food",
+        lambda self, food_id: {
+            "id": food_id,
+            "name": "Olive oil",
+            "units": [{"code": "RKL", "name": "tablespoon", "grams": 13.5}],
+        },
+    )
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Oil",
+            "ingredients": [{"name": "Olive oil", "amount": "2 tbsp"}],
+        },
+    ).json()
+    ing_id = created["ingredients"][0]["id"]
+
+    first = client.put(
+        f"/api/recipes/{created['id']}/ingredients/{ing_id}/nutrition-source",
+        json={"fineli_id": "100"},
+    )
+    assert first.status_code == 200
+    assert first.json()["conversion_status"] == "estimated"
+
+    second = client.put(
+        f"/api/recipes/{created['id']}/ingredients/{ing_id}/nutrition-source",
+        json={"fineli_id": "100"},
+    )
+    assert second.status_code == 200
+    assert second.json()["conversion_status"] == "estimated"
+
+
+def test_update_ingredients_uses_mapping_default_weight(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        LocalFineliClient,
+        "get_food",
+        lambda self, food_id: {
+            "id": food_id,
+            "name": "Avocado, without skin and stone",
+            "units": [],
+        },
+    )
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Guacamole",
+            "ingredients": [{"name": "Avocado", "amount": "2 whole"}],
+        },
+    ).json()
+
+    updated = client.put(
+        f"/api/recipes/{created['id']}/ingredients",
+        json={
+            "ingredients": [
+                {
+                    "name": "Avocado",
+                    "amount": "2 whole",
+                    "quantity": None,
+                    "unit": None,
+                    "fineli_id": "11057",
+                }
+            ]
+        },
+    )
+    assert updated.status_code == 200
+    ing = updated.json()["ingredients"][0]
+    assert ing["quantity"] == pytest.approx(300.0)
+    assert ing["unit"] == "g"
+    assert ing["conversion_status"] == "estimated"
+
+
+def test_delete_recipe_after_nutrition_calculation(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from datetime import datetime, timezone
+    from app import main
+
+    with main.engine.connect() as conn:
+        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+    monkeypatch.setattr(
+        LocalFineliClient,
+        "get_food",
+        lambda self, food_id: {
+            "id": food_id,
+            "name": "Test food",
+            "units": [],
+            "nutrients_per_100g": {
+                "energy_kcal": 100,
+                "energy_kj": None,
+                "protein_g": None,
+                "carbohydrates_g": None,
+                "fat_g": None,
+                "fiber_g": None,
+                "salt_g": None,
+                "sugars_g": None,
+                "saturated_fat_g": None,
+            },
+            "detailed_nutrients": [],
+            "source": {
+                "provider": "Fineli",
+                "source_type": "dataset",
+                "external_id": food_id,
+                "source_url": f"https://fineli.test/{food_id}",
+                "retrieved_at": datetime.now(timezone.utc),
+                "attribution_text": "Source: Fineli",
+            },
+        },
+    )
+
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Calculated recipe",
+            "ingredients": [
+                {"name": "Test food", "amount": "100 g", "quantity": 100, "unit": "g", "fineli_id": "1"}
+            ],
+        },
+    )
+    assert created.status_code == 201
+    recipe_id = created.json()["id"]
+
+    calc = client.post(f"/api/recipes/{recipe_id}/nutrition/recalculate")
+    assert calc.status_code == 200
+
+    deleted = client.delete(f"/api/recipes/{recipe_id}")
+    assert deleted.status_code == 204
+    assert client.get(f"/api/recipes/{recipe_id}").status_code == 404
+
+
+def test_update_ingredients_preserves_estimated_status_and_order(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        LocalFineliClient,
+        "get_food",
+        lambda self, food_id: {
+            "id": food_id,
+            "name": "Garlic" if food_id == "393" else "Oats",
+            "units": [],
+        },
+    )
+    created = client.post(
+        "/api/recipes",
+        json={
+            "title": "Garlicky oats",
+            "ingredients": [
+                {"name": "Garlic", "amount": "3 cloves", "fineli_id": "393"},
+                {"name": "Oats", "amount": "100 g", "quantity": 100, "unit": "g", "fineli_id": "2"},
+            ],
+        },
+    )
+    assert created.status_code == 201
+    garlic_created = created.json()["ingredients"][0]
+    assert garlic_created["quantity"] == 15
+    assert garlic_created["conversion_status"] == "estimated"
+
+    updated = client.put(
+        f"/api/recipes/{created.json()['id']}/ingredients",
+        json={
+            "ingredients": [
+                {"name": "Garlic", "amount": "3 cloves", "quantity": 15, "unit": "g", "fineli_id": "393"},
+                {"name": "Oats", "amount": "100 g", "quantity": 100, "unit": "g", "fineli_id": "2"},
+            ]
+        },
+    )
+    assert updated.status_code == 200
+    ingredients = updated.json()["ingredients"]
+    assert [item["name"] for item in ingredients] == ["Garlic", "Oats"]
+    assert ingredients[0]["quantity"] == 15
+    assert ingredients[0]["conversion_status"] == "estimated"
+    assert ingredients[1]["conversion_status"] == "exact"

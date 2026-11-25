@@ -31,7 +31,9 @@ class Recipe(Base):
     )
 
     ingredients: Mapped[list["Ingredient"]] = relationship(
-        back_populates="recipe", cascade="all, delete-orphan"
+        back_populates="recipe",
+        cascade="all, delete-orphan",
+        order_by="Ingredient.id",
     )
     source: Mapped["RecipeSource | None"] = relationship(
         back_populates="recipe", cascade="all, delete-orphan", uselist=False
@@ -79,7 +81,9 @@ class NutritionCalculationItem(Base):
     run_id: Mapped[int] = mapped_column(
         ForeignKey("nutrition_calculation_runs.id", ondelete="CASCADE"), index=True
     )
-    ingredient_id: Mapped[int] = mapped_column(ForeignKey("ingredients.id"))
+    ingredient_id: Mapped[int] = mapped_column(
+        ForeignKey("ingredients.id", ondelete="CASCADE")
+    )
     source_id: Mapped[str] = mapped_column(String(100))
     source_name: Mapped[str] = mapped_column(String(200))
     source_values: Mapped[dict] = mapped_column(JSON)
@@ -114,7 +118,9 @@ class NutritionFact(Base):
     recipe_id: Mapped[int] = mapped_column(
         ForeignKey("recipes.id", ondelete="CASCADE"), unique=True
     )
-    run_id: Mapped[int] = mapped_column(ForeignKey("nutrition_calculation_runs.id"))
+    run_id: Mapped[int] = mapped_column(
+        ForeignKey("nutrition_calculation_runs.id", ondelete="CASCADE")
+    )
     values: Mapped[dict] = mapped_column(JSON)
     source: Mapped[dict] = mapped_column(JSON)
     calculated_at: Mapped[datetime] = mapped_column(

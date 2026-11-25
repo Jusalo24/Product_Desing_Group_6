@@ -293,9 +293,9 @@ def test_recalculate_keeps_available_nutrients_when_some_are_missing(local_clien
 def test_recalculate_closes_local_client_after_calculation(
     local_client, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    recipe_id = _recipe_with(local_client, "1")
     closed: list[bool] = []
     monkeypatch.setattr(LocalFineliClient, "close", lambda self: closed.append(True))
-    recipe_id = _recipe_with(local_client, "1")
 
     response = local_client.post(f"/api/recipes/{recipe_id}/nutrition/recalculate")
 
