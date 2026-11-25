@@ -147,19 +147,20 @@ class FineliFoodUnitRead(BaseModel):
     grams: float
 
 
-class ExternalMeal(BaseModel):
-    external_id: str
+class MealSearchIngredient(BaseModel):
+    name: str
+    measure: str | None = None
+
+
+class MealSearchResult(BaseModel):
+    id: str
     name: str
     category: str | None = None
     area: str | None = None
     instructions: str | None = None
-    thumbnail_url: str | None = None
-    source_url: str | None = None
-    youtube_url: str | None = None
-    ingredients: list[dict[str, str]] = []
-    source: SourceInfo
-
-
-class ExternalMealList(BaseModel):
-    meals: list[ExternalMeal]
-    source: SourceInfo
+    imageUrl: str | None = None
+    tags: list[str] = []
+    youtubeUrl: str | None = None
+    sourceUrl: str | None = None
+    creativeCommonsConfirmed: str | None = None
+    ingredients: list[MealSearchIngredient] = []

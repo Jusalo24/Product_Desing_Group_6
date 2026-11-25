@@ -42,7 +42,7 @@ def test_suggestions_rank_exact_candidates_and_do_not_mutate_matches(
         json={"title": "Unmatched", "ingredients": [{"name": "sugars", "amount": "100 g"}]},
     ).json()
 
-    response = client.get("/api/ingredients/suggestions", params={"q": "sugars"})
+    response = client.get("/api/ingredients/search", params={"q": "sugars", "limit": 5})
 
     assert response.status_code == 200
     assert [food["name"] for food in response.json()] == ["Sugar", "Fruit sugar"]
@@ -52,7 +52,7 @@ def test_suggestions_rank_exact_candidates_and_do_not_mutate_matches(
 
 
 def test_suggestion_query_must_be_nonempty(client) -> None:
-    response = client.get("/api/ingredients/suggestions", params={"q": " "})
+    response = client.get("/api/ingredients/search", params={"q": " "})
 
     assert response.status_code == 422
 

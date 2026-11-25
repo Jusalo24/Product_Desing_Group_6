@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
-from app.integrations.fineli.client import ExternalProviderError
-from app.integrations.themealdb.client import TheMealDbClient
+from app.integrations.themealdb.client import ExternalProviderError, TheMealDbClient
 
 
 def _meal(external_id: str = "52771") -> dict:

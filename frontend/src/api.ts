@@ -22,8 +22,8 @@ export const api = {
   searchIngredients: (query: string) =>
     request<FineliFood[]>(`/ingredients/search?q=${encodeURIComponent(query)}`),
   suggestIngredients: (query: string) => {
-    const params = new URLSearchParams({ q: query });
-    return request<FineliFood[]>(`/ingredients/suggestions?${params.toString()}`);
+    const params = new URLSearchParams({ q: query, limit: "5" });
+    return request<FineliFood[]>(`/ingredients/search?${params.toString()}`);
   },
   importExternalRecipe: (externalId: string) =>
     request<Recipe>(`/external-recipes/id/${encodeURIComponent(externalId)}/import`, {

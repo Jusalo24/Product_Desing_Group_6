@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app import main
 from app import models
 import app.scripts.import_fineli as fineli_importer
-from app.integrations.fineli.local_client import LocalFineliClient
+from app.integrations.fineli.local_client import FineliFoodNotFound, LocalFineliClient
 from app.models import FineliFood
 from app.scripts.import_fineli import (
     analyze_classifications,
@@ -113,43 +113,45 @@ def test_classification_analysis_reports_counts_and_unresolved_codes(
 
 
 def test_import_converts_units_and_keeps_missing_as_null(local_client) -> None:
-    food = local_client.get("/api/ingredients/1").json()
-    values = food["nutrients_per_100g"]
-    assert values["energy_kj"] == pytest.approx(1698.3)
-    assert values["energy_kcal"] == pytest.approx(405.9, abs=0.05)
-    assert values["carbohydrates_g"] == pytest.approx(99.9)
-    assert values["fat_g"] == 0.0          # a real zero stays zero
-    assert values["protein_g"] is None     # blank in the file stays missing
-    assert food["name"] == "Sugar"
-    assert food["food_type"] == "FOOD"
-    assert food["process"] == "IND"
-    assert food["ingredient_class"] == "X"
-    assert food["source"]["provider"] == "Fineli"
-    assert food["source"]["source_type"] == "dataset"
-    assert {
-        "code": "ENERC",
-        "name": "Energy",
-        "unit": "kJ",
-        "group": "Other nutrients",
-        "value_per_100g": 1698.3,
-    } in food["detailed_nutrients"]
+    with Session(main.engine) as db:
+        fineli_client = LocalFineliClient(db)
+        food = fineli_client.get_food("1")
+        values = food["nutrients_per_100g"]
+        assert values["energy_kj"] == pytest.approx(1698.3)
+        assert values["energy_kcal"] == pytest.approx(405.9, abs=0.05)
+        assert values["carbohydrates_g"] == pytest.approx(99.9)
+        assert values["fat_g"] == 0.0          # a real zero stays zero
+        assert values["protein_g"] is None     # blank in the file stays missing
+        assert food["name"] == "Sugar"
+        assert food["food_type"] == "FOOD"
+        assert food["process"] == "IND"
+        assert food["ingredient_class"] == "X"
+        assert food["source"]["provider"] == "Fineli"
+        assert food["source"]["source_type"] == "dataset"
+        assert {
+            "code": "ENERC",
+            "name": "Energy",
+            "unit": "kJ",
+            "group": "Other nutrients",
+            "value_per_100g": 1698.3,
+        } in food["detailed_nutrients"]
 
-    salt = local_client.get("/api/ingredients/3").json()
-    assert salt["nutrients_per_100g"]["salt_g"] == pytest.approx(39.3)  # mg -> g
-    assert salt["name"] == "Suola"  # falls back to the Finnish name
+        salt = fineli_client.get_food("3")
+        assert salt["nutrients_per_100g"]["salt_g"] == pytest.approx(39.3)  # mg -> g
+        assert salt["name"] == "Suola"  # falls back to the Finnish name
 
-    fiber = local_client.get("/api/ingredients/2").json()
-    assert fiber["nutrients_per_100g"]["fiber_g"] == 1.5  # FIBT fallback
+        fiber = fineli_client.get_food("2")
+        assert fiber["nutrients_per_100g"]["fiber_g"] == 1.5  # FIBT fallback
 
-    dish = local_client.get("/api/ingredients/3").json()
-    assert dish["food_type"] == "DISH"
-    assert dish["process"] == "BOIL"
-    assert dish["ingredient_class"] == "Y"
+        dish = fineli_client.get_food("3")
+        assert dish["food_type"] == "DISH"
+        assert dish["process"] == "BOIL"
+        assert dish["ingredient_class"] == "Y"
 
-    missing = local_client.get("/api/ingredients/4").json()
-    assert missing["food_type"] == "FOOD"
-    assert missing["process"] == "IND"
-    assert missing["ingredient_class"] is None
+        missing = fineli_client.get_food("4")
+        assert missing["food_type"] == "FOOD"
+        assert missing["process"] == "IND"
+        assert missing["ingredient_class"] is None
 
 
 def test_import_preserves_unknown_classification_codes(
@@ -164,10 +166,12 @@ def test_import_preserves_unknown_classification_codes(
 
     import_fineli(tmp_path, engine=main.engine)
 
-    food = client.get("/api/ingredients/4").json()
-    assert food["food_type"] == "UNKNOWN_TYPE"
-    assert food["process"] == "UNKNOWN_PROCESS"
-    assert food["ingredient_class"] == "UNKNOWN_CLASS"
+    with Session(main.engine) as db:
+        food = db.get(FineliFood, "4")
+        assert food is not None
+        assert food.food_type == "UNKNOWN_TYPE"
+        assert food.process == "UNKNOWN_PROCESS"
+        assert food.ingredient_class == "UNKNOWN_CLASS"
 
 
 def test_search_matches_english_and_finnish_and_ranks_exact_first(local_client) -> None:
@@ -192,8 +196,10 @@ def test_search_ignores_commas_and_word_order(local_client) -> None:
         assert response.json()[0]["name"] == "Rice, white"
 
 
-def test_unknown_food_is_404(local_client) -> None:
-    assert local_client.get("/api/ingredients/424242").status_code == 404
+def test_unknown_food_raises_not_found(local_client) -> None:
+    with Session(main.engine) as db:
+        with pytest.raises(FineliFoodNotFound):
+            LocalFineliClient(db).get_food("424242")
 
 
 def _recipe_with(
@@ -335,8 +341,9 @@ def test_import_rerun_replaces_stale_food_rows(local_client, tmp_path: Path) -> 
     stats = import_fineli(tmp_path, engine=main.engine)
 
     assert stats["foods"] == 1
-    assert local_client.get("/api/ingredients/1").status_code == 200
-    assert local_client.get("/api/ingredients/4").status_code == 404
+    with Session(main.engine) as db:
+        assert db.get(FineliFood, "1") is not None
+        assert db.get(FineliFood, "4") is None
 
 
 def test_failed_import_rolls_back_table_replacement(
@@ -360,8 +367,9 @@ def test_failed_import_rolls_back_table_replacement(
     with pytest.raises(RuntimeError, match="simulated insert failure"):
         import_fineli(tmp_path, engine=main.engine)
 
-    assert local_client.get("/api/ingredients/4").status_code == 200
-    assert local_client.get("/api/ingredients/5").status_code == 404
+    with Session(main.engine) as db:
+        assert db.get(FineliFood, "4") is not None
+        assert db.get(FineliFood, "5") is None
 
 
 @pytest.mark.parametrize(

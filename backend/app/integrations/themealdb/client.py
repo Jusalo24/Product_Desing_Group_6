@@ -7,9 +7,12 @@ from typing import Any
 import httpx
 
 from app.config import settings
-from app.integrations.fineli.client import ExternalProviderError
 
 logger = logging.getLogger(__name__)
+
+
+class ExternalProviderError(RuntimeError):
+    """Raised when an external provider cannot supply a valid response."""
 
 
 def _source(external_id: str | None = None) -> dict[str, Any]:
@@ -95,15 +98,6 @@ class TheMealDbClient:
     def get(self, external_id: str) -> dict[str, Any] | None:
         meals = self._meals("lookup.php", {"i": external_id})
         return meals[0] if meals else None
-
-    def random(self) -> dict[str, Any]:
-        meals = self._meals("random.php")
-        if not meals:
-            raise ExternalProviderError("TheMealDB returned no random meal")
-        return meals[0]
-
-    def filter(self, kind: str, value: str) -> list[dict[str, Any]]:
-        return self._meals("filter.php", {kind: value})
 
     def list_values(self, kind: str) -> list[dict[str, Any]]:
         payload = self._request("list.php", {kind: "list"})
